@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { notFound } from 'next/navigation';
 // AdminLayout je poskytován automaticky přes layout.tsx
 import BlogVideoInput from '@/components/BlogVideoInput';
+import ImageUploader from '@/components/ImageUploader';
 import { BlogPost } from '@/types/blog';
 import { FiSave, FiArrowLeft } from 'react-icons/fi';
 import Link from 'next/link';
@@ -114,6 +115,13 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
       videoUrl: videoData.videoUrl,
       videoLibraryId: videoData.videoLibraryId,
       thumbnailUrl: videoData.thumbnailUrl || prev.thumbnailUrl,
+    }));
+  };
+
+  const handleThumbnailUpload = (url: string) => {
+    setFormData(prev => ({
+      ...prev,
+      thumbnailUrl: url
     }));
   };
 
@@ -295,6 +303,39 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
               initialVideoUrl={formData.videoUrl}
               initialLibraryId={formData.videoLibraryId || '276140'}
             />
+            
+                    {/* Thumbnail obrázek - Upload nebo URL */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-neutral-700 mb-2">
+            Thumbnail obrázek
+          </label>
+          
+          {/* Upload možnost */}
+          <div className="mb-4">
+            <p className="text-sm text-neutral-600 mb-2">📤 Nahrát vlastní obrázek:</p>
+            <ImageUploader
+              currentImageUrl={formData.thumbnailUrl}
+              onImageUpload={handleThumbnailUpload}
+              folder="blog-thumbnails"
+            />
+          </div>
+          
+          {/* Nebo URL */}
+          <div className="border-t pt-4">
+            <p className="text-sm text-neutral-600 mb-2">🔗 Nebo použít URL:</p>
+            <input
+              type="url"
+              id="thumbnailUrl"
+              value={formData.thumbnailUrl}
+              onChange={(e) => setFormData(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="https://example.com/thumbnail.jpg"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Pokud je prázdné, použije se automatický gradient podle tagů.
+            </p>
+          </div>
+        </div>
           </div>
 
           {/* Obsah */}

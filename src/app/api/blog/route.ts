@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 
+// Povolení veřejného přístupu k blog API
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// CORS headers pro veřejný přístup
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+// OPTIONS handler pro CORS
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders(),
+  });
+}
+
 // GET /api/blog - Načíst všechny blog posty
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +48,9 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(posts);
+    return NextResponse.json(posts, {
+      headers: corsHeaders(),
+    });
   } catch (error) {
     console.error('Chyba při načítání blog postů:', error);
     return NextResponse.json(

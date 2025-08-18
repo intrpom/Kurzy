@@ -4,11 +4,20 @@ import MainLayout from '@/app/MainLayout';
 import BunnyVideoPlayer from '@/components/BunnyVideoPlayer';
 import { BlogPost } from '@/types/blog';
 
+
+
 // Funkce pro načítání jednoho blog postu
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/blog/${slug}`, {
-      cache: 'no-store' // Pro aktuální počet zobrazení
+    // Použijeme plnou URL i na serveru pro Next.js Server Components
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    
+    const response = await fetch(`${baseUrl}/api/blog/${slug}`, {
+      cache: 'no-store', // Pro aktuální počet zobrazení
+      headers: {
+        'User-Agent': 'kurzy-internal-fetch'
+      }
     });
     
     if (!response.ok) {
@@ -26,8 +35,15 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
 // Funkce pro načítání souvisejících videí
 async function getRelatedPosts(currentSlug: string, tags: string[]): Promise<BlogPost[]> {
   try {
-    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/blog`, {
-      cache: 'no-store'
+    // Použijeme plnou URL i na serveru pro Next.js Server Components
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    
+    const response = await fetch(`${baseUrl}/api/blog`, {
+      cache: 'no-store',
+      headers: {
+        'User-Agent': 'kurzy-internal-fetch'
+      }
     });
     
     if (!response.ok) return [];

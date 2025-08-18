@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 // AdminLayout je poskytován automaticky přes layout.tsx
 import BlogVideoInput from '@/components/BlogVideoInput';
+import ImageUploader from '@/components/ImageUploader';
 import { FiSave, FiArrowLeft } from 'react-icons/fi';
 import Link from 'next/link';
 
@@ -81,6 +82,13 @@ export default function NewBlogPostPage() {
       videoUrl: videoData.videoUrl,
       videoLibraryId: videoData.videoLibraryId,
       thumbnailUrl: videoData.thumbnailUrl || prev.thumbnailUrl,
+    }));
+  };
+
+  const handleThumbnailUpload = (url: string) => {
+    setFormData(prev => ({
+      ...prev,
+      thumbnailUrl: url
     }));
   };
 
@@ -235,46 +243,38 @@ export default function NewBlogPostPage() {
               initialLibraryId={formData.videoLibraryId || '276140'}
             />
             
-            {/* Vlastní thumbnail URL */}
-            <div className="mt-6">
-              <label htmlFor="thumbnailUrl" className="block text-sm font-medium text-neutral-700 mb-2">
-                Vlastní thumbnail URL
-              </label>
-              <input
-                type="url"
-                id="thumbnailUrl"
-                value={formData.thumbnailUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="https://example.com/my-thumbnail.jpg"
-              />
-              <p className="text-xs text-neutral-500 mt-1">
-                Pokud nevyplníte, použije se automaticky generovaný thumbnail z Bunny.net
-              </p>
-              
-              {/* Preview vlastního thumbnail */}
-              {formData.thumbnailUrl && (
-                <div className="mt-3">
-                  <p className="text-sm text-neutral-700 mb-2">Náhled thumbnail:</p>
-                  <div className="w-48 h-27 bg-neutral-100 rounded-md overflow-hidden">
-                    <img
-                      src={formData.thumbnailUrl}
-                      alt="Thumbnail náhled"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling!.style.display = 'flex';
-                      }}
-                    />
-                    <div 
-                      className="w-full h-full flex items-center justify-center text-neutral-500 text-sm hidden"
-                    >
-                      Nepodařilo se načíst obrázek
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                    {/* Thumbnail obrázek - Upload nebo URL */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-neutral-700 mb-2">
+            Thumbnail obrázek
+          </label>
+          
+          {/* Upload možnost */}
+          <div className="mb-4">
+            <p className="text-sm text-neutral-600 mb-2">📤 Nahrát vlastní obrázek:</p>
+            <ImageUploader
+              currentImageUrl={formData.thumbnailUrl}
+              onImageUpload={handleThumbnailUpload}
+              folder="blog-thumbnails"
+            />
+          </div>
+          
+          {/* Nebo URL */}
+          <div className="border-t pt-4">
+            <p className="text-sm text-neutral-600 mb-2">🔗 Nebo použít URL:</p>
+            <input
+              type="url"
+              id="thumbnailUrl"
+              value={formData.thumbnailUrl}
+              onChange={(e) => setFormData(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="https://example.com/my-thumbnail.jpg"
+            />
+            <p className="text-xs text-neutral-500 mt-1">
+              Pokud je prázdné, použije se automatický gradient podle tagů.
+            </p>
+          </div>
+        </div>
           </div>
 
           {/* Obsah */}

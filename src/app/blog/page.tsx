@@ -2,21 +2,31 @@ import Link from 'next/link';
 import MainLayout from '@/app/MainLayout';
 import { FiPlay, FiCalendar, FiClock, FiEye } from 'react-icons/fi';
 
+
+
 // Funkce pro získání blog postů
 async function getBlogPosts() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/blog`, {
-      cache: 'no-store'
+    // Použijeme plnou URL i na serveru pro Next.js Server Components
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    
+    const response = await fetch(`${baseUrl}/api/blog`, {
+      cache: 'no-store',
+      headers: {
+        'User-Agent': 'kurzy-internal-fetch'
+      }
     });
     
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      throw new Error(`Failed to fetch blog posts: ${response.status}`);
     }
     
     return await response.json();
   } catch (error) {
-    console.error('Chyba při načítání blog postů:', error);
-    throw new Error('Nepodařilo se načíst blog posty');
+    console.error('API není dostupné, vrácím prázdný seznam:', error);
+    // Fallback na prázdný seznam místo crashe
+    return [];
   }
 }
 
@@ -28,6 +38,22 @@ function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}h ${remainingMinutes}min`;
+}
+
+// Funkce pro gradient podle tématu
+function getThemeGradient(tags: string[]): string {
+  const tag = tags[0]?.toLowerCase() || '';
+  
+  if (tag.includes('zrada') || tag.includes('nevěra')) return 'from-red-500 to-red-700';
+  if (tag.includes('partner') || tag.includes('vztah') || tag.includes('láska')) return 'from-pink-500 to-pink-700';
+  if (tag.includes('minulost') || tag.includes('trauma')) return 'from-purple-500 to-purple-700';
+  if (tag.includes('rozvoj') || tag.includes('investice')) return 'from-green-500 to-green-700';
+  if (tag.includes('výchova') || tag.includes('děti')) return 'from-blue-500 to-blue-700';
+  if (tag.includes('schůzka') || tag.includes('randění')) return 'from-orange-500 to-orange-700';
+  if (tag.includes('manipulace') || tag.includes('ochrana')) return 'from-gray-500 to-gray-700';
+  if (tag.includes('psychologie')) return 'from-indigo-500 to-indigo-700';
+  
+  return 'from-primary-500 to-primary-700'; // Default
 }
 
 // Funkce pro formátování data
@@ -63,29 +89,33 @@ export default async function BlogPage() {
                 href={`/blog/${post.slug}`}
                 className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group"
               >
-                {/* Video Thumbnail - použijeme iframe od Bunny.net */}
+                {/* Video Thumbnail */}
                 <div className="aspect-video bg-neutral-100 relative overflow-hidden">
-                  {post.videoUrl && post.videoLibraryId ? (
-                    <>
-                      <iframe
-                        src={`https://iframe.mediadelivery.net/embed/${post.videoLibraryId}/${post.videoUrl}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`}
-                        className="w-full h-full border-0 pointer-events-none"
-                        loading="lazy"
-                        title={post.title}
-                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                        allowFullScreen
+                  {post.thumbnailUrl ? (
+                    // Vlastní thumbnail obrázek
+                    <div className="w-full h-full relative">
+                      <img 
+                        src={post.thumbnailUrl} 
+                        alt={post.title}
+                        className="w-full h-full object-cover"
                       />
                       {/* Play overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200">
+                      <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center group-hover:bg-opacity-30 transition-all">
                         <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
                           <FiPlay className="w-6 h-6 text-primary-600 ml-1" />
                         </div>
                       </div>
-                    </>
+                    </div>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-                      <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
-                        <FiPlay className="w-6 h-6 text-white" />
+                    // Gradient fallback
+                    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${getThemeGradient(post.tags)}`}>
+                      <div className="text-center p-6">
+                        <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-200 shadow-lg">
+                          <FiPlay className="w-6 h-6 text-primary-600 ml-1" />
+                        </div>
+                        <h3 className="text-white font-semibold text-sm text-center leading-tight drop-shadow-lg">
+                          {post.title}
+                        </h3>
                       </div>
                     </div>
                   )}
