@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Course {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  title          String
+  subtitle       String?
+  description    String
+  imageUrl       String?
+  price          Float        @default(0)
+  isFeatured     Boolean      @default(false)
+  level          String?
+  tags           String[]
+  progress       Int?
+  completed      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  videoLibraryId String?
+  modules        Module[]
+  userCourses    UserCourse[]
+}
+
+model Module {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  order          Int
+  completed      Boolean  @default(false)
+  courseId       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  videoLibraryId String?
+  lessons        Lesson[]
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Lesson {
+  id             String     @id @default(cuid())
+  title          String
+  description    String?
+  duration       Int
+  videoUrl       String?
+  videoLibraryId String?
+  order          Int
+  completed      Boolean    @default(false)
+  moduleId       String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  module         Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  materials      Material[]
+}
+
+model Material {
+  id        String   @id @default(cuid())
+  title     String
+  type      String
+  url       String?
+  content   String?
+  lessonId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model BlogPost {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  subtitle       String?
+  content        String?
+  videoUrl       String?  // Bunny.net video ID
+  videoLibraryId String?  // Bunny.net library ID
+  thumbnailUrl   String?
+  tags           String[]
+  isPublished    Boolean  @default(true)
+  views          Int      @default(0)
+  duration       Int?     // délka videa v minutách
+  publishedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  role        String       @default("user")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tokens      AuthToken[]
+  userCourses UserCourse[]
+}
+
+model AuthToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expires   DateTime
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserCourse {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  progress  Int      @default(0)
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}

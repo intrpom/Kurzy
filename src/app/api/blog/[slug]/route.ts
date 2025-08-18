@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+
+// GET /api/blog/[slug] - Načíst jeden blog post podle slug
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const post = await prisma.blogPost.findUnique({
+      where: {
+        slug: params.slug
+      }
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { error: 'Blog post nebyl nalezen' },
+        { status: 404 }
+      );
+    }
+
+    // Zvýšení počtu zobrazení
+    await prisma.blogPost.update({
+      where: { id: post.id },
+      data: { views: { increment: 1 } }
+    });
+
+    // Vrátíme post s aktualizovaným počtem zobrazení
+    const updatedPost = { ...post, views: post.views + 1 };
+
+    return NextResponse.json(updatedPost);
+  } catch (error) {
+    console.error('Chyba při načítání blog postu:', error);
+    return NextResponse.json(
+      { error: 'Nepodařilo se načíst blog post' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/blog/[slug] - Aktualizovat blog post
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const data = await request.json();
+    
+    const post = await prisma.blogPost.update({
+      where: {
+        slug: params.slug
+      },
+      data: {
+        title: data.title,
+        subtitle: data.subtitle,
+        content: data.content,
+        videoUrl: data.videoUrl,
+        videoLibraryId: data.videoLibraryId,
+        thumbnailUrl: data.thumbnailUrl,
+        tags: data.tags,
+        isPublished: data.isPublished,
+        duration: data.duration,
+        // Pokud se mění slug, aktualizuj i ten
+        ...(data.slug && data.slug !== params.slug ? { slug: data.slug } : {})
+      }
+    });
+
+    return NextResponse.json(post);
+  } catch (error) {
+    console.error('Chyba při aktualizaci blog postu:', error);
+    return NextResponse.json(
+      { error: 'Nepodařilo se aktualizovat blog post' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/blog/[slug] - Smazat blog post
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    await prisma.blogPost.delete({
+      where: {
+        slug: params.slug
+      }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Chyba při mazání blog postu:', error);
+    return NextResponse.json(
+      { error: 'Nepodařilo se smazat blog post' },
+      { status: 500 }
+    );
+  }
+}
