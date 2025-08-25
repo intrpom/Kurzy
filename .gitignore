@@ -43,7 +43,7 @@ pids
 coverage/
 
 # Backup files
-backups/
+# backups/ - commented out to allow Git tracking
 
 # Prisma
 prisma/migrations/

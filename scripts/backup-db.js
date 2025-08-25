@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-// Skript pro zálohování databáze a nahrání na GitHub
+// Skript pro zálohování databáze lokálně
 // Použití: node scripts/backup-to-github.js
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+
 const dotenv = require('dotenv');
 
 // Načtení proměnných prostředí z .env souboru
@@ -20,9 +20,9 @@ if (!process.env.DATABASE_URL && !process.env.PRISMA_DATABASE_URL) {
 // Vytvoření instance Prisma klienta
 const prisma = new PrismaClient();
 
-async function backupToGitHub() {
+async function backupDatabase() {
   try {
-    console.log('🚀 Spouštím zálohování databáze a nahrání na GitHub...\n');
+    console.log('🚀 Spouštím zálohování databáze...\n');
     
     // 1. KROK: Zálohování databáze
     console.log('📊 1. Zálohuji databázi...');
@@ -108,45 +108,12 @@ async function backupToGitHub() {
     console.log(`   📁 Data uložena do: ${currentBackupDir}`);
     console.log(`   📊 Statistiky: ${metadata.stats.courses} kurzů, ${metadata.stats.modules} modulů, ${metadata.stats.lessons} lekcí, ${metadata.stats.users} uživatelů\n`);
     
-    // 2. KROK: Git workflow
-    console.log('🔄 2. Spouštím Git workflow...');
-    
-    try {
-      // Kontrola Git stavu
-      console.log('   📋 Kontroluji Git status...');
-      const gitStatus = execSync('git status --porcelain', { encoding: 'utf8' });
-      
-      if (gitStatus.trim()) {
-        console.log('   📝 Nalezeny změny:');
-        console.log(gitStatus);
-        
-        // Přidání všech změn
-        console.log('   ➕ Přidávám změny do Git...');
-        execSync('git add .', { stdio: 'inherit' });
-        
-        // Commit s automatickou zprávou
-        const commitMessage = `🔄 Záloha databáze - ${new Date().toLocaleString('cs-CZ')}`;
-        console.log(`   💾 Commituji změny: "${commitMessage}"`);
-        execSync(`git commit -m "${commitMessage}"`, { stdio: 'inherit' });
-        
-        // Push na GitHub
-        console.log('   🚀 Nahrávám na GitHub...');
-        execSync('git push origin main', { stdio: 'inherit' });
-        
-        console.log('\n✅ Úspěch! Záloha byla nahrána na GitHub.');
-        console.log(`🔗 Repozitář: https://github.com/intrpom/Kurzy`);
-        
-      } else {
-        console.log('   ℹ️  Žádné změny k commitnutí.');
-      }
-      
-    } catch (gitError) {
-      console.error('   ❌ Chyba při Git operacích:', gitError.message);
-      console.log('   💡 Zkus spustit Git příkazy manuálně:');
-      console.log('      git add .');
-      console.log('      git commit -m "Záloha databáze"');
-      console.log('      git push origin main');
-    }
+    console.log('✅ Záloha dokončena!');
+    console.log('\n📋 Pro nahrání na GitHub použij:');
+    console.log('   git add .');
+    console.log('   git commit -m "Záloha databáze"');
+    console.log('   git push origin main');
+    console.log('\n💡 Nebo použij: git add . && git commit -m "Záloha databáze" && git push origin main');
     
   } catch (error) {
     console.error('❌ Chyba při zálohování:', error);
@@ -157,4 +124,4 @@ async function backupToGitHub() {
 }
 
 // Spuštění skriptu
-backupToGitHub();
+backupDatabase();
