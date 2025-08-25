@@ -11,7 +11,6 @@
  */
 export async function checkCourseAccess(courseId: string): Promise<{ hasAccess: boolean }> {
   try {
-    console.log('Kontrola přístupu ke kurzu:', courseId);
     
     // Použijeme XMLHttpRequest pro lepší podporu cookies
     return new Promise((resolve, reject) => {
@@ -20,7 +19,6 @@ export async function checkCourseAccess(courseId: string): Promise<{ hasAccess: 
       
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
-          console.log('XHR odpověď:', { status: xhr.status, responseText: xhr.responseText });
           
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
@@ -42,7 +40,6 @@ export async function checkCourseAccess(courseId: string): Promise<{ hasAccess: 
                 }
               }
               
-              console.log(userHasAccess ? 'Uživatel má přístup ke kurzu' : 'Uživatel nemá přístup ke kurzu');
               resolve({ hasAccess: userHasAccess });
             } catch (error) {
               console.error('Chyba při parsování odpovědi:', error);
@@ -74,7 +71,6 @@ export async function checkCourseAccess(courseId: string): Promise<{ hasAccess: 
  */
 export async function addFreeCourseToUser(courseId: string): Promise<{ success: boolean, message?: string }> {
   try {
-    console.log('Přidávám kurz zdarma uživateli, courseId:', courseId);
     
     // Použijeme XMLHttpRequest pro lepší podporu cookies
     return new Promise((resolve, reject) => {
@@ -83,7 +79,6 @@ export async function addFreeCourseToUser(courseId: string): Promise<{ success: 
       
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
-          console.log('XHR odpověď:', { status: xhr.status, responseText: xhr.responseText });
           
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
@@ -140,6 +135,5 @@ export function redirectToCourse(slug: string, courseId: string): void {
   form.appendChild(timestampInput);
   
   document.body.appendChild(form);
-  console.log('Odesílám formulář pro přesměrování');
   form.submit();
 }

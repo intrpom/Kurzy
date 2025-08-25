@@ -10,9 +10,11 @@ interface VerifyAuthProps {
   email: string;
   courseId?: string;
   slug?: string;
+  price?: string;
+  action?: string;
 }
 
-const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug }) => {
+const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, price, action }) => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState<string>('Ověřujeme váš přihlašovací odkaz...');
   const { checkAuth } = useAuth();
@@ -22,7 +24,6 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
   const verificationAttempted = useRef<boolean>(false);
 
   useEffect(() => {
-    console.log('VerifyAuth useEffect spuštěn');
     
     // Vždy ověříme token, i když již byl dříve ověřen
     // Odstraníme všechny předchozí příznaky autentizace
@@ -32,7 +33,6 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
     localStorage.removeItem('isAuthenticated');
     sessionStorage.removeItem('skipAuthCheck');
     
-    console.log('Odstraněny všechny předchozí příznaky autentizace');
     
     // Nastavíme stav na loading
     setStatus('loading');
@@ -40,24 +40,20 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
 
     // Zabránění vícenásobnému volání API
     if (verificationAttempted.current) {
-      console.log('Ověření již bylo zahájeno, nebudeme ho spouštět znovu');
       return;
     }
     
     // Označíme, že jsme již provedli pokus o ověření
     verificationAttempted.current = true;
-    console.log('Nastaveno verificationAttempted=true');
     
     const verifyToken = async () => {
       try {
-        console.log('Začínám ověřovat token:', { token, email });
         
         // Přidáme timestamp pro zabránění cachování
         const timestamp = Date.now();
         
         // Použijeme přímé volání API bez použití Next.js API routes
         const apiUrl = `/api/auth/verify?token=${token}&email=${encodeURIComponent(email)}&_=${timestamp}`;
-        console.log('Volám API endpoint:', apiUrl);
         
         // Použijeme XMLHttpRequest pro lepší podporu cookies
         const xhr = new XMLHttpRequest();
@@ -92,18 +88,15 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
         
         // Počkáme na dokončení požadavku
         const data = await xhrPromise as any;
-        console.log('Parsovaná data z API:', data);
 
         if (data.success) {
           setStatus('success');
-          console.log('Přihlášení úspěšné, připravuji přesměrování');
           setMessage('Přihlášení bylo úspěšné!');
           
           // Explicitně zavoláme checkAuth() pro aktualizaci stavu autentizace
           try {
             // Počkáme na dokončení kontroly autentizace
             await checkAuth();
-            console.log('Autentizace byla úspěšně ověřena');
           } catch (error) {
             console.error('Chyba při kontrole autentizace:', error);
           }
@@ -111,21 +104,67 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
           // Nastavení příznaků v localStorage pro optimalizaci
           localStorage.setItem('recentAuth', 'true');
           localStorage.setItem('authTimestamp', Date.now().toString());
-          console.log('Nastaveny příznaky v localStorage: recentAuth=true, authTimestamp=' + Date.now());
           
           // Uložení informace o ověření tokenu do sessionStorage
           const tokenKey = `verified_${token}`;
           sessionStorage.setItem(tokenKey, 'true');
-          console.log(`Uložena informace o ověření tokenu do sessionStorage: ${tokenKey}`);
           
-          // Přímé přesměrování bez použití API volání
+          // Pokud je akce "purchase", nejprve zkontrolujeme vlastnictví kurzu
+          if (action === 'purchase' && courseId && slug && price) {
+            setMessage('Kontroluji dostupnost kurzu...');
+            
+            try {
+              // Kontrola, zda už uživatel kurz nevlastní
+              const accessResponse = await fetch(`/api/user/courses?courseId=${courseId}&_=${Date.now()}`);
+              const accessData = await accessResponse.json();
+              
+              if (accessData.hasAccess) {
+                setStatus('success');
+                setMessage('Tento kurz již vlastníte! Přesměrovávám na váš kurz...');
+                setTimeout(() => {
+                  window.location.href = `/moje-kurzy/${slug}`;
+                }, 2000);
+                return;
+              }
+
+              setMessage('Přesměrovávám na platbu...');
+
+              const response = await fetch('/api/stripe/checkout', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  courseId,
+                  courseSlug: slug,
+                  courseTitle: `Kurz ${slug}`,
+                  price: Number(price),
+                }),
+              });
+
+              const stripeData = await response.json();
+
+              if (stripeData.success && stripeData.url) {
+                // Přesměrovat na Stripe Checkout
+                window.location.href = stripeData.url;
+                return; // Nespouštět standardní přesměrování
+              } else {
+                throw new Error(stripeData.error || 'Nepodařilo se vytvořit platební session');
+              }
+            } catch (error) {
+              console.error('Chyba při kontrole kurzu nebo vytváření Stripe checkout:', error);
+              setStatus('error');
+              setMessage('Nepodařilo se zpracovat požadavek. Zkuste to prosím později.');
+              return;
+            }
+          }
+          
+          // Standardní přesměrování pro nepladené kurzy
           const redirectUrl = courseId && slug ? `/kurzy/${slug}` : '/';
-          console.log(`Připravuji přesměrování na: ${redirectUrl}`);
           
           // Nastavení příznaku pro zabránění smyčce API volání
           sessionStorage.setItem('skipAuthCheck', 'true');
           
-          console.log('Ověření tokenu úspěšné, připravuji přesměrování');
           
           // Nastavíme příznaky pro sledování úspěšného ověření
           localStorage.setItem('recentAuth', 'true');
@@ -134,12 +173,6 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
           // Nastavíme příznak pro tento konkrétní token, že byl úspěšně ověřen
           localStorage.setItem(`token_verified_${token}`, 'true');
           
-          console.log('Nastavené příznaky:', {
-            recentAuth: localStorage.getItem('recentAuth'),
-            authTimestamp: localStorage.getItem('authTimestamp'),
-            tokenVerified: localStorage.getItem(`token_verified_${token}`)
-          });
-          
           // Vytvoříme iframe pro načtení API endpointu /api/auth/me
           // Toto zajistí, že cookies budou správně nastavené před přesměrováním
           const authCheckIframe = document.createElement('iframe');
@@ -147,11 +180,9 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
           authCheckIframe.src = `/api/auth/me?_=${Date.now()}`;
           document.body.appendChild(authCheckIframe);
           
-          console.log('Přidán iframe pro načtení /api/auth/me');
           
           // Počkáme 2 sekundy, aby se iframe načetl a cookies se správně nastavily
           setTimeout(() => {
-            console.log(`Provádím přesměrování na: ${redirectUrl}`);
             
             // Použijeme form submit pro přesměrování, což zajistí přenos cookies
             const form = document.createElement('form');
@@ -173,7 +204,6 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug })
             form.appendChild(authInput);
             
             document.body.appendChild(form);
-            console.log('Odesílám formulář pro přesměrování s parametrem auth=true');
             form.submit();
           }, 2000);
         } else {

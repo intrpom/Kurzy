@@ -35,6 +35,10 @@ async function getCourses(): Promise<Course[]> {
         tags: true
       }
     });
+    
+    // Debug: vypíšeme ceny kurzů s timestampem
+    const timestamp = new Date().toISOString();
+    
     return courses;
   } catch (error) {
     console.error('Chyba při načítání kurzů:', error);
@@ -42,8 +46,8 @@ async function getCourses(): Promise<Course[]> {
   }
 }
 
-// Stránka se vygeneruje pouze při buildu a zůstane statická
-// Pro kurzy, které se nemění často, je toto optimální nastavení
+// Stránka se dynamicky generuje bez cache
+export const dynamic = 'force-dynamic';
 
 // Import klientské komponenty
 import CourseCard from './CourseCard';
@@ -94,8 +98,8 @@ export default async function Courses() {
 
           {/* Courses Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course: Course) => (
-              <CourseCard key={course.id} course={course} />
+            {courses.map((course: Course, index: number) => (
+              <CourseCard key={course.id} course={course} priority={index === 0} />
             ))}
           </div>
         </div>

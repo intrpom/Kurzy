@@ -40,21 +40,32 @@ function formatDuration(minutes: number): string {
   return `${hours}h ${remainingMinutes}min`;
 }
 
-// Funkce pro gradient podle tématu
+// Funkce pro získání barevného gradientu podle tématu
 function getThemeGradient(tags: string[]): string {
-  const tag = tags[0]?.toLowerCase() || '';
+  if (tags.includes('vztahy') || tags.includes('láska') || tags.includes('partnerství')) {
+    return 'bg-gradient-to-br from-pink-400 to-red-500';
+  }
+  if (tags.includes('sebepoznání') || tags.includes('osobní rozvoj') || tags.includes('self-help')) {
+    return 'bg-gradient-to-br from-blue-400 to-indigo-500';
+  }
+  if (tags.includes('komunikace') || tags.includes('rozhovor') || tags.includes('dialog')) {
+    return 'bg-gradient-to-br from-green-400 to-emerald-500';
+  }
+  if (tags.includes('stres') || tags.includes('úzkost') || tags.includes('anxiety')) {
+    return 'bg-gradient-to-br from-orange-400 to-amber-500';
+  }
+  if (tags.includes('rodina') || tags.includes('děti') || tags.includes('rodičovství')) {
+    return 'bg-gradient-to-br from-purple-400 to-violet-500';
+  }
+  if (tags.includes('práce') || tags.includes('kariéra') || tags.includes('zaměstnání')) {
+    return 'bg-gradient-to-br from-teal-400 to-cyan-500';
+  }
   
-  if (tag.includes('zrada') || tag.includes('nevěra')) return 'from-red-500 to-red-700';
-  if (tag.includes('partner') || tag.includes('vztah') || tag.includes('láska')) return 'from-pink-500 to-pink-700';
-  if (tag.includes('minulost') || tag.includes('trauma')) return 'from-purple-500 to-purple-700';
-  if (tag.includes('rozvoj') || tag.includes('investice')) return 'from-green-500 to-green-700';
-  if (tag.includes('výchova') || tag.includes('děti')) return 'from-blue-500 to-blue-700';
-  if (tag.includes('schůzka') || tag.includes('randění')) return 'from-orange-500 to-orange-700';
-  if (tag.includes('manipulace') || tag.includes('ochrana')) return 'from-gray-500 to-gray-700';
-  if (tag.includes('psychologie')) return 'from-indigo-500 to-indigo-700';
-  
-  return 'from-primary-500 to-primary-700'; // Default
+  // Výchozí gradient
+  return 'bg-gradient-to-br from-neutral-400 to-neutral-500';
 }
+
+
 
 // Funkce pro formátování data
 function formatDate(dateString: string): string {
@@ -92,28 +103,20 @@ export default async function BlogPage() {
                 {/* Video Thumbnail */}
                 <div className="aspect-video bg-neutral-100 relative overflow-hidden">
                   {post.thumbnailUrl ? (
-                    // Vlastní thumbnail obrázek
-                    <div className="w-full h-full relative">
-                      <img 
-                        src={post.thumbnailUrl} 
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {/* Play overlay */}
-                      <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center group-hover:bg-opacity-30 transition-all">
-                        <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-lg">
-                          <FiPlay className="w-6 h-6 text-primary-600 ml-1" />
-                        </div>
-                      </div>
-                    </div>
+                    // Zobrazí vlastní nahraný thumbnail
+                    <img 
+                      src={post.thumbnailUrl} 
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    // Gradient fallback
-                    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${getThemeGradient(post.tags)}`}>
-                      <div className="text-center p-6">
-                        <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-200 shadow-lg">
-                          <FiPlay className="w-6 h-6 text-primary-600 ml-1" />
+                    // Fallback na barevný gradient s play buttonem
+                    <div className={`w-full h-full flex items-center justify-center relative ${getThemeGradient(post.tags || [])}`}>
+                      <div className="text-center text-white">
+                        <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-3 mx-auto backdrop-blur-sm">
+                          <FiPlay className="w-8 h-8 ml-1" />
                         </div>
-                        <h3 className="text-white font-semibold text-sm text-center leading-tight drop-shadow-lg">
+                        <h3 className="font-semibold text-lg px-4 leading-tight">
                           {post.title}
                         </h3>
                       </div>

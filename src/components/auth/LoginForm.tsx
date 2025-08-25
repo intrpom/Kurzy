@@ -6,13 +6,26 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormProps {
   courseId?: string;
+  slug?: string;
+  price?: string;
+  action?: string;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ courseId }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) => {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [magicLinkUrl, setMagicLinkUrl] = useState<string | null>(null);
   const { login, loading, error } = useAuth();
+
+  // Funkce pro přidání parametrů do magic linku
+  const getMagicLinkWithParams = (url: string) => {
+    const urlObj = new URL(url);
+    if (courseId) urlObj.searchParams.set('courseId', courseId);
+    if (slug) urlObj.searchParams.set('slug', slug);
+    if (price) urlObj.searchParams.set('price', price);
+    if (action) urlObj.searchParams.set('action', action);
+    return urlObj.toString();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,12 +70,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId }) => {
           <div className="mt-6 p-4 bg-blue-50 rounded-md">
             <p className="text-sm text-blue-700 mb-2 font-medium">Testovací odkaz (pouze pro vývojové účely):</p>
             <a 
-              href={magicLinkUrl} 
+              href={getMagicLinkWithParams(magicLinkUrl)} 
               className="text-blue-600 underline text-sm break-all"
               target="_blank"
               rel="noopener noreferrer"
             >
-              {magicLinkUrl}
+              {getMagicLinkWithParams(magicLinkUrl)}
             </a>
           </div>
         )}

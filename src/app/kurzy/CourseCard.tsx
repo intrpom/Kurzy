@@ -18,9 +18,10 @@ interface Course {
 
 interface CourseCardProps {
   course: Course;
+  priority?: boolean;
 }
 
-export default function CourseCard({ course }: CourseCardProps) {
+export default function CourseCard({ course, priority = false }: CourseCardProps) {
   return (
     <div className="card">
       <div className="relative h-48 bg-neutral-100">
@@ -32,6 +33,7 @@ export default function CourseCard({ course }: CourseCardProps) {
               width={400}
               height={225}
               className="rounded-t-lg"
+              priority={priority}
             />
           </div>
         ) : (
@@ -51,7 +53,7 @@ export default function CourseCard({ course }: CourseCardProps) {
         <CourseAccessButton 
           courseId={course.id}
           slug={course.slug}
-          price={course.price}
+          price={Number(course.price)}
         />
       </div>
     </div>

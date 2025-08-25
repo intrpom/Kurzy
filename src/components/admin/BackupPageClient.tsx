@@ -8,8 +8,6 @@ import logger from '@/utils/logger';
 
 export default function BackupPageClient() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [backupResult, setBackupResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [backupHistory, setBackupHistory] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -65,33 +63,7 @@ export default function BackupPageClient() {
     return <AdminLoading />;
   }
 
-  // Funkce pro vytvoření zálohy
-  const handleBackup = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setBackupResult(null);
 
-      logger.info('Začínám zálohování databáze');
-      const response = await fetch('/api/admin/backup', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Nastala chyba při zálohování');
-      }
-
-      const result = await response.json();
-      logger.info('Zálohování dokončeno', result);
-      setBackupResult(result);
-    } catch (err) {
-      logger.error('Chyba při zálohování:', err);
-      setError(`Nastala chyba: ${err instanceof Error ? err.message : 'Neznámá chyba'}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Funkce pro spuštění zálohovacího skriptu
   const handleRunBackupScript = async () => {
@@ -184,23 +156,17 @@ export default function BackupPageClient() {
       <AdminHeader title="Zálohování databáze" />
 
       <div className="bg-white p-6 rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4">Manuální záloha databáze</h2>
+        <h2 className="text-xl font-semibold mb-4">Záloha databáze</h2>
         <p className="mb-4 text-gray-700">
           Kliknutím na tlačítko níže vytvoříte zálohu aktuálního stavu databáze.
-          Záloha bude uložena jako JSON soubor v adresáři <code>backups</code> na serveru.
+          Záloha bude uložena do adresáře <code>backups</code> s časovým razítkem.
         </p>
 
-        <button
-          onClick={handleBackup}
-          disabled={isLoading || isScriptRunning}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Probíhá zálohování...' : 'Vytvořit zálohu přes API'}
-        </button>
+
         <button
           onClick={handleRunBackupScript}
-          disabled={isScriptRunning || isLoading}
-          className="ml-4 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isScriptRunning}
+          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isScriptRunning ? 'Skript běží...' : 'Zálohovat pomocí skriptu'}
         </button>
@@ -212,22 +178,7 @@ export default function BackupPageClient() {
           </div>
         )}
 
-        {backupResult && (
-        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-          <h3 className="font-medium text-green-800">Záloha byla úspěšně vytvořena přes API</h3>
-          <div className="mt-2 text-sm text-green-700">
-            <p>Počet zálohovaných položek:</p>
-            <ul className="list-disc pl-5 mt-1">
-              <li>Kurzy: {backupResult.courses || 0}</li>
-              <li>Moduly: {backupResult.modules || 0}</li>
-              <li>Lekce: {backupResult.lessons || 0}</li>
-              <li>Materiály: {backupResult.materials || 0}</li>
-              <li>Uživatelé: {backupResult.users || 0}</li>
-              <li>Přístupy ke kurzům: {backupResult.userCourses || 0}</li>
-            </ul>
-          </div>
-        </div>
-      )}
+
       
       {scriptResult && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
@@ -239,21 +190,7 @@ export default function BackupPageClient() {
         </div>
       )}
 
-        {backupResult && !error && (
-          <div className="mt-4 p-4 bg-green-50 text-green-700 rounded-md">
-            <p className="font-medium">Záloha byla úspěšně vytvořena!</p>
-            <ul className="mt-2 list-disc list-inside">
-              <li>Kurzy: {backupResult.courses || 0}</li>
-              <li>Moduly: {backupResult.modules || 0}</li>
-              <li>Lekce: {backupResult.lessons || 0}</li>
-              <li>Materiály: {backupResult.materials || 0}</li>
-              <li>Uživatelé: {backupResult.users || 0}</li>
-            </ul>
-            <p className="mt-2">
-              Záloha byla uložena do souboru: <code>{backupResult.filename}</code>
-            </p>
-          </div>
-        )}
+
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-sm">

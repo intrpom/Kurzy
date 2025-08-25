@@ -227,15 +227,19 @@ export async function saveCourseOptimized(
       try {
         console.log(`Paralelně ukládám ${changedLessonIds.length} změněných lekcí...`);
         
-        // Najdeme všechny změněné lekce
-        const lessonsToUpdate: Lesson[] = [];
+        // Najdeme všechny změněné lekce a přidáme jim moduleId
+        const lessonsToUpdate: (Lesson & { moduleId: string })[] = [];
         
         for (const lessonId of changedLessonIds) {
           // Procházíme všechny moduly a hledáme lekci
           for (const module of course.modules) {
             const lesson = module.lessons.find(l => l.id === lessonId);
             if (lesson) {
-              lessonsToUpdate.push(lesson);
+              // Přidáme moduleId k lekci
+              lessonsToUpdate.push({
+                ...lesson,
+                moduleId: module.id
+              });
               break;
             }
           }
@@ -504,12 +508,12 @@ export async function deleteLesson(courseId: string, moduleId: string, lessonId:
 
 /**
  * Přímá aktualizace jedné lekce bez ukládání celého kurzu
- * @param lesson Lekce k aktualizaci
+ * @param lesson Lekce k aktualizaci (s moduleId)
  * @returns Aktualizovaná lekce
  */
-export async function saveLesson(lesson: Lesson): Promise<Lesson> {
+export async function saveLesson(lesson: Lesson & { moduleId?: string }): Promise<Lesson> {
   try {
-    console.log(`Přímá aktualizace lekce ${lesson.id}`);
+    console.log(`Ukládám lekci ${lesson.id}`);
     
     if (lesson.materials && lesson.materials.length > 0) {
       console.log(`Lekce obsahuje ${lesson.materials.length} materiálů:`, 
@@ -518,8 +522,8 @@ export async function saveLesson(lesson: Lesson): Promise<Lesson> {
       console.log(`Lekce neobsahuje žádné materiály`);
     }
     
-    // Použití moderního fetch API pro rychlejší ukládání
-    const response = await fetch(`/api/lessons/${lesson.id}`, {
+    // Nejdříve zkusíme aktualizovat existující lekci
+    let response = await fetch(`/api/lessons/${lesson.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -531,20 +535,45 @@ export async function saveLesson(lesson: Lesson): Promise<Lesson> {
       body: JSON.stringify(lesson)
     });
     
+    // Pokud dostaneme 404, znamená to, že lekce ještě neexistuje - vytvoříme ji
+    if (response.status === 404) {
+      console.log(`Lekce ${lesson.id} neexistuje, vytvářím novou`);
+      
+      // Musíme najít moduleId - lekce by měla mít moduleId property
+      if (!lesson.moduleId) {
+        throw new Error(`Nelze vytvořit novou lekci bez moduleId`);
+      }
+      
+      response = await fetch(`/api/lessons`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...lesson,
+          moduleId: lesson.moduleId
+        })
+      });
+    }
+    
     if (!response.ok) {
       throw new Error(`HTTP chyba: ${response.status} - ${response.statusText}`);
     }
     
-    const updatedLesson = await response.json();
-    console.log(`Lekce ${lesson.id} úspěšně aktualizována`);
+    const savedLesson = await response.json();
+    console.log(`Lekce ${lesson.id} úspěšně uložena`);
     
     // Invalidate cache pro tuto lekci
     apiCache.delete(`lesson-${lesson.id}`);
     
-    return updatedLesson;
+    return savedLesson;
     
   } catch (error) {
-    console.error('Chyba při aktualizaci lekce:', error);
+    console.error('Chyba při ukládání lekce:', error);
     throw error;
   }
 }

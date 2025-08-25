@@ -9,6 +9,7 @@ export function generateBunnyThumbnailUrl(videoId: string, libraryId: string): s
   // Mapování Library ID na Pull Zone ID pro thumbnails
   const libraryToPullZoneMap: { [key: string]: string } = {
     '276140': 'a7c54915-1b0', // Blog videa
+    '260909': 'a7c54915-1b0', // Starší blog videa (stejný pull zone)
     '424657': 'a7c54915-1b0', // Kurzy (stejný pull zone)
   };
   

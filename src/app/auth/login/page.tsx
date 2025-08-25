@@ -7,10 +7,12 @@ import { FiArrowLeft } from 'react-icons/fi';
 export default function Login({
   searchParams
 }: {
-  searchParams: { courseId?: string, slug?: string }
+  searchParams: { courseId?: string, slug?: string, price?: string, action?: string }
 }) {
   const courseId = searchParams.courseId;
   const slug = searchParams.slug;
+  const price = searchParams.price;
+  const action = searchParams.action;
   
   return (
     <MainLayout>
@@ -20,11 +22,14 @@ export default function Login({
             <h1 className="text-3xl font-serif font-bold mb-6 text-center">Přihlášení</h1>
             
             <p className="text-neutral-700 mb-6 text-center">
-              Pro přístup ke kurzu zadejte svůj e-mail. Zašleme vám přihlašovací odkaz.
+              {action === 'purchase' 
+                ? `Pro nákup kurzu za ${price} Kč se nejprve přihlaste. Zašleme vám přihlašovací odkaz.`
+                : 'Pro přístup ke kurzu zadejte svůj e-mail. Zašleme vám přihlašovací odkaz.'
+              }
             </p>
             
             <Suspense fallback={<div>Načítání...</div>}>
-              <LoginForm courseId={courseId} />
+              <LoginForm courseId={courseId} slug={slug} price={price} action={action} />
             </Suspense>
             
             <div className="mt-8 text-center">

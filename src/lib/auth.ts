@@ -113,21 +113,22 @@ export async function verifySession(request: NextRequest): Promise<DecodedSessio
         return null;
       }
       
-      // Kontrola, zda session obsahuje potřebná data
-      if (!sessionData || !sessionData.id) {
+      // Kontrola, zda session obsahuje potřebná data (podporujeme starý i nový formát)
+      const userId = sessionData.userId || sessionData.id;
+      if (!sessionData || !userId) {
         console.error('Session data neobsahují ID uživatele');
         return null;
       }
       
       console.log('Session data úspěšně dekódována:', { 
-        id: sessionData.id,
+        userId: userId,
         role: sessionData.role,
         exp: sessionData.exp ? new Date(sessionData.exp * 1000).toISOString() : 'není'
       });
       
       // Kontrola, zda uživatel existuje
       const user = await prisma.user.findUnique({
-        where: { id: sessionData.id },
+        where: { id: userId },
       });
 
       if (!user) {

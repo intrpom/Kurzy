@@ -41,6 +41,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Načtení seznamu uživatelů
   const fetchUsers = async (page = 1) => {
@@ -91,6 +93,48 @@ export default function UsersPage() {
   // Zavření detailu uživatele
   const closeUserDetail = () => {
     setSelectedUser(null);
+  };
+
+  // Zobrazení potvrzovacího dialogu pro smazání
+  const confirmDeleteUser = (user: User) => {
+    setUserToDelete(user);
+  };
+
+  // Zrušení mazání
+  const cancelDelete = () => {
+    setUserToDelete(null);
+  };
+
+  // Smazání uživatele
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: userToDelete.id }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Úspěšné smazání - aktualizujeme seznam uživatelů
+        alert(`Uživatel ${userToDelete.email} byl úspěšně smazán`);
+        fetchUsers(pagination.page); // Znovu načteme aktuální stránku
+        setUserToDelete(null);
+      } else {
+        alert(data.error || 'Nepodařilo se smazat uživatele');
+      }
+    } catch (error) {
+      console.error('Chyba při mazání uživatele:', error);
+      alert('Nepodařilo se smazat uživatele');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading && users.length === 0) {
@@ -181,6 +225,14 @@ export default function UsersPage() {
                       className="text-primary-600 hover:text-primary-900 mr-3"
                     >
                       Detail
+                    </button>
+                    <button
+                      onClick={() => confirmDeleteUser(user)}
+                      className="text-red-600 hover:text-red-900 inline-flex items-center"
+                      title="Smazat uživatele"
+                    >
+                      <FiTrash2 className="mr-1" size={14} />
+                      Smazat
                     </button>
                   </td>
                 </tr>
@@ -321,6 +373,71 @@ export default function UsersPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Potvrzovací dialog pro smazání uživatele */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <FiTrash2 className="text-red-600" size={20} />
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-lg font-medium text-neutral-900">
+                    Smazat uživatele
+                  </h3>
+                  <p className="text-sm text-neutral-500">
+                    Tato akce je nevratná
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-neutral-700">
+                  Opravdu chcete smazat uživatele{' '}
+                  <strong>{userToDelete.email}</strong>?
+                </p>
+                <p className="text-sm text-neutral-500 mt-2">
+                  Budou smazána všechna data uživatele včetně:
+                </p>
+                <ul className="text-sm text-neutral-500 mt-1 ml-4 list-disc">
+                  <li>Přístup ke všem kurzům ({userToDelete.coursesCount})</li>
+                  <li>Všechny autentizační tokeny</li>
+                  <li>Veškerý postup v kurzech</li>
+                </ul>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-200 rounded-md hover:bg-neutral-300"
+                  disabled={isDeleting}
+                >
+                  Zrušit
+                </button>
+                <button
+                  onClick={deleteUser}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Mazání...
+                    </>
+                  ) : (
+                    <>
+                      <FiTrash2 className="mr-2" size={14} />
+                      Smazat uživatele
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

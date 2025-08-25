@@ -10,9 +10,10 @@ type CourseImageProps = {
   height: number;
   className?: string;
   objectFit?: 'fill' | 'contain' | 'cover' | 'none' | 'scale-down';
+  priority?: boolean;
 };
 
-export default function CourseImage({ src, alt, width, height, className, objectFit = 'cover' }: CourseImageProps) {
+export default function CourseImage({ src, alt, width, height, className, objectFit = 'cover', priority = false }: CourseImageProps) {
   const [error, setError] = useState(false);
   
   // Fallback obrázek, který se použije, pokud původní obrázek není k dispozici
@@ -28,6 +29,7 @@ export default function CourseImage({ src, alt, width, height, className, object
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         style={{ objectFit, width: '100%', height: '100%' }}
         className={`${className || ''}`}
+        priority={priority}
         onError={() => setError(true)}
       />
     </div>

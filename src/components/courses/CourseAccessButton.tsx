@@ -26,6 +26,15 @@ interface CourseAccessButtonProps {
 export default function CourseAccessButton({ courseId, slug, price }: CourseAccessButtonProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  
+  // FORCE RYCHLEJŠÍ LOADING - pokud je loading moc dlouho, zkusíme obejít
+  const [fastLoading, setFastLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFastLoading(false);
+    }, 1000); // 1 sekunda max pro loading
+    return () => clearTimeout(timer);
+  }, []);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
@@ -41,7 +50,6 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
 
       try {
         setCheckingAccess(true);
-        console.log('Kontrola přístupu ke kurzu:', courseId, 'pro uživatele:', user.id);
         
         const { hasAccess: userHasAccess } = await checkCourseAccess(courseId);
         setHasAccess(userHasAccess);
@@ -63,7 +71,6 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
   // Funkce pro přímý přístup ke kurzu
   const handleAccessCourse = async () => {
     try {
-      console.log('Zpracování přístupu ke kurzu:', { courseId, slug, price, hasAccess, isLoggedIn: !!user });
       
       // Pokud je kurz zdarma a uživatel je přihlášen a nemá přístup, nejprve zobrazíme potvrzení
       if (price === 0 && user && !hasAccess) {
@@ -74,7 +81,6 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
         }
         
         // Pokud je zobrazené potvrzení, pokračujeme s přidáním kurzu
-        console.log('Přidávám kurz zdarma uživateli:', { userId: user.id, courseId });
         
         try {
           // Přidáme kurz uživateli
@@ -85,10 +91,17 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
             throw new Error(response.message || 'Nepodařilo se přidat kurz');
           }
           
-          console.log('Kurz byl úspěšně přidán uživateli');
           
           // Aktualizujeme stav přístupu
           setHasAccess(true);
+          
+          // Skryjeme potvrzovací dialog
+          setShowConfirmation(false);
+          
+          // Malé zpoždění a pak přesměrování
+          setTimeout(() => {
+            redirectToCourse(slug, courseId);
+          }, 500);
         } catch (error) {
           console.error('Chyba při přidávání kurzu:', error);
           alert('Nepodařilo se přidat kurz. Zkuste to prosím později.');
@@ -98,7 +111,6 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
       
       // Pokud je uživatel přihlášen a má přístup ke kurzu, přesměrujeme ho na stránku kurzu
       if (user && hasAccess) {
-        console.log('Přesměrovávám na stránku kurzu:', `/moje-kurzy/${slug}`);
         redirectToCourse(slug, courseId);
       }
     } catch (error) {
@@ -109,13 +121,18 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
 
   // Vykreslení tlačítka podle stavu
   
-  // Stav načítání
-  if (loading || checkingAccess) {
+  // Načítání autentizace - čekáme na zjištění, zda je uživatel přihlášený (max 1 sekunda)
+  if (loading && fastLoading) {
+    return <LoadingButton />;
+  }
+  
+  // Načítání kontroly přístupu - pouze pokud víme, že je uživatel přihlášený
+  if (user && checkingAccess) {
     return <LoadingButton />;
   }
 
   // Uživatel má přístup ke kurzu
-  if (hasAccess) {
+  if (user && hasAccess) {
     return <StartCourseButton onClick={handleAccessCourse} />;
   }
 
@@ -135,11 +152,11 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
       
       return <GetFreeCourseButton onClick={handleAccessCourse} disabled={checkingAccess} />;
     } else {
-      // Pro placené kurzy
-      return <BuyCourseButton courseId={courseId} slug={slug} />;
+      // Pro placené kurzy - VŽDY BuyCourseButton pro přihlášené uživatele
+      return <BuyCourseButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} />;
     }
   }
 
-  // Uživatel není přihlášen
-  return <GuestButton courseId={courseId} slug={slug} />;
+  // Uživatel SKUTEČNĚ není přihlášen (loading = false, user = null)
+  return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} />;
 }

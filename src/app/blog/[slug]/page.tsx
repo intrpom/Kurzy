@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import MainLayout from '@/app/MainLayout';
 import BunnyVideoPlayer from '@/components/BunnyVideoPlayer';
 import { BlogPost } from '@/types/blog';
+import { FiPlay } from 'react-icons/fi';
 
 
 
@@ -75,6 +76,31 @@ function formatViews(views: number): string {
   if (views < 1000) return `${views}`;
   if (views < 1000000) return `${(views / 1000).toFixed(1)}k`;
   return `${(views / 1000000).toFixed(1)}M`;
+}
+
+// Funkce pro získání barevného gradientu podle tématu
+function getThemeGradient(tags: string[]): string {
+  if (tags.includes('vztahy') || tags.includes('láska') || tags.includes('partnerství')) {
+    return 'bg-gradient-to-br from-pink-400 to-red-500';
+  }
+  if (tags.includes('sebepoznání') || tags.includes('osobní rozvoj') || tags.includes('self-help')) {
+    return 'bg-gradient-to-br from-blue-400 to-indigo-500';
+  }
+  if (tags.includes('komunikace') || tags.includes('rozhovor') || tags.includes('dialog')) {
+    return 'bg-gradient-to-br from-green-400 to-emerald-500';
+  }
+  if (tags.includes('stres') || tags.includes('úzkost') || tags.includes('anxiety')) {
+    return 'bg-gradient-to-br from-orange-400 to-amber-500';
+  }
+  if (tags.includes('rodina') || tags.includes('děti') || tags.includes('rodičovství')) {
+    return 'bg-gradient-to-br from-purple-400 to-violet-500';
+  }
+  if (tags.includes('práce') || tags.includes('kariéra') || tags.includes('zaměstnání')) {
+    return 'bg-gradient-to-br from-teal-400 to-cyan-500';
+  }
+  
+  // Výchozí gradient
+  return 'bg-gradient-to-br from-neutral-400 to-neutral-500';
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
@@ -185,19 +211,17 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                       className="block group"
                     >
                       <div className="flex gap-3">
-                        {/* Thumbnail */}
+                        {/* Video Preview */}
                         <div className="w-20 h-12 bg-neutral-100 rounded overflow-hidden flex-shrink-0">
                           {relatedPost.thumbnailUrl ? (
                             <img 
-                              src={relatedPost.thumbnailUrl}
+                              src={relatedPost.thumbnailUrl} 
                               alt={relatedPost.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-                              <svg className="w-4 h-4 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                              </svg>
+                            <div className={`w-full h-full flex items-center justify-center ${getThemeGradient(relatedPost.tags || [])}`}>
+                              <FiPlay className="w-3 h-3 text-white" />
                             </div>
                           )}
                         </div>

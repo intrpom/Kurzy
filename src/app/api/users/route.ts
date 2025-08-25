@@ -78,3 +78,76 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect();
   }
 }
+
+// DELETE /api/users - Smazání uživatele
+export async function DELETE(request: NextRequest) {
+  try {
+    console.log('DEBUG: Začínám DELETE /api/users');
+    
+    // Ověření, zda je uživatel přihlášen jako admin
+    const session = await verifySession(request);
+    console.log('DEBUG: Session po verifySession:', { session: session ? { userId: session.userId, email: session.email, role: session.role } : null });
+    
+    if (!session || session.role !== 'admin') {
+      console.log('DEBUG: Uživatel nemá admin oprávnění');
+      return NextResponse.json({ error: 'Nemáte oprávnění k mazání uživatelů' }, { status: 403 });
+    }
+
+    // Získání ID uživatele k smazání
+    const { userId } = await request.json();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Chybí ID uživatele' }, { status: 400 });
+    }
+
+    // Kontrola, zda se admin nesnaží smazat sám sebe
+    console.log('DEBUG: Kontrola mazání uživatele:', { sessionUserId: session.userId, targetUserId: userId });
+    if (session.userId === userId) {
+      return NextResponse.json({ error: 'Nemůžete smazat svůj vlastní účet' }, { status: 400 });
+    }
+
+    // Ověření, že uživatel existuje
+    const userToDelete = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userCourses: true,
+        tokens: true,
+      },
+    });
+
+    if (!userToDelete) {
+      return NextResponse.json({ error: 'Uživatel nebyl nalezen' }, { status: 404 });
+    }
+
+    // Smazání všech souvisejících dat uživatele v transakci
+    await prisma.$transaction(async (tx) => {
+      // Smazání všech kurzů uživatele
+      await tx.userCourse.deleteMany({
+        where: { userId },
+      });
+
+      // Smazání všech autentizačních tokenů uživatele
+      await tx.authToken.deleteMany({
+        where: { userId },
+      });
+
+      // Smazání samotného uživatele
+      await tx.user.delete({
+        where: { id: userId },
+      });
+    });
+
+    console.log(`Admin ${session.email} smazal uživatele ${userToDelete.email} (ID: ${userId})`);
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Uživatel ${userToDelete.email} byl úspěšně smazán` 
+    });
+
+  } catch (error) {
+    console.error('Chyba při mazání uživatele:', error);
+    return NextResponse.json({ error: 'Nepodařilo se smazat uživatele' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
+  }
+}

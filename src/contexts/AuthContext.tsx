@@ -28,7 +28,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Efekt pro kontrolu autentizace při načtení aplikace
   useEffect(() => {
     // Kontrola, zda je potřeba ověřit autentizaci
-    console.log('Kontroluji, zda je potřeba ověřit autentizaci');
     
     // Zkontrolujeme, zda je nastaven příznak recentAuth z VerifyAuth komponenty
     const recentAuth = localStorage.getItem('recentAuth');
@@ -39,14 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const timestamp = parseInt(authTimestamp, 10);
       const timeDiff = now - timestamp;
       
-      console.log(`Nalezen příznak recentAuth, časový rozdíl: ${timeDiff}ms`);
       
       // Zkontrolujeme, zda je v URL parametr auth (značí nedávné přesměrování)
       const urlParams = new URLSearchParams(window.location.search);
       const authParam = urlParams.get('auth');
       
       if (authParam && timeDiff < 300000) { // 5 minut
-        console.log('Nalezen parametr auth v URL, používám synchronní kontrolu autentizace');
         
         // Použijeme synchronní XMLHttpRequest pro okamžitou kontrolu autentizace
         const xhr = new XMLHttpRequest();
@@ -62,10 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const data = JSON.parse(xhr.responseText);
-              console.log('Odpověď z /api/auth/me (synchronní):', data);
               
               if (data.authenticated && data.user) {
-                console.log('Uživatel je autentizován (synchronní):', data.user);
                 setUser(data.user);
                 setLoading(false);
                 return;
@@ -81,16 +76,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     // Standardní kontrola autentizace
-    console.log('Provádím standardní kontrolu autentizace');
     checkAuth();
+    
+    // Timeout pro loading stav - pokud se autentifikace nezdaří do 0.5 sekundy, zobrazíme jako nepřihlášeného
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Funkce pro kontrolu autentizace
   const checkAuth = async () => {
+    // Timeout pro checkAuth - pokud se nezdaří do 1 sekundy, zobrazíme jako nepřihlášeného
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setUser(null);
+    }, 1000);
+    
     try {
       setLoading(true);
       
-      console.log('Začínám kontrolu autentizace');
       
       // Zkontrolujeme, zda je nastaven příznak recentAuth z VerifyAuth komponenty
       const recentAuth = localStorage.getItem('recentAuth');
@@ -101,7 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const timestamp = parseInt(authTimestamp, 10);
         const timeDiff = now - timestamp;
         
-        console.log(`Nalezen příznak recentAuth, časový rozdíl: ${timeDiff}ms`);
         
         // Zkontrolujeme, zda je nastavená cookie user_id (non-httpOnly cookie)
         const userIdCookie = document.cookie
@@ -109,7 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .find(row => row.startsWith('user_id='));
           
         if (userIdCookie && timeDiff < 60000) {
-          console.log('Nalezena user_id cookie:', userIdCookie);
           
           // Použijeme XMLHttpRequest pro kontrolu autentizace
           const xhr = new XMLHttpRequest();
@@ -124,10 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             xhr.send();
             if (xhr.status >= 200 && xhr.status < 300) {
               const data = JSON.parse(xhr.responseText);
-              console.log('Odpověď z /api/auth/me (synchronní XHR):', data);
               
               if (data.authenticated && data.user) {
-                console.log('Uživatel je autentizován (XHR):', data.user);
                 setUser(data.user);
                 setLoading(false);
                 return; // Úspěšná autentizace, končíme
@@ -142,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Standardní kontrola pomocí fetch
       const timestamp = Date.now();
-      console.log('Používám fetch pro kontrolu autentizace');
       
       try {
         // Použijeme fetch s explicitním nastavením pro cookies
@@ -160,13 +161,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         
         const data = await response.json();
-        console.log('Odpověď z /api/auth/me (fetch):', data);
 
         if (data.authenticated && data.user) {
-          console.log('Uživatel je autentizován (fetch):', data.user);
           setUser(data.user);
         } else {
-          console.log('Uživatel není autentizován');
           setUser(null);
         }
       } catch (fetchError) {
@@ -178,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Chyba při kontrole autentizace:', err);
       setUser(null);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

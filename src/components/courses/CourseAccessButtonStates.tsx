@@ -1,6 +1,7 @@
 'use client';
 
-import { FiArrowRight } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiArrowRight, FiCreditCard } from 'react-icons/fi';
 import Link from 'next/link';
 
 interface ButtonProps {
@@ -8,6 +9,8 @@ interface ButtonProps {
   disabled?: boolean;
   courseId: string;
   slug: string;
+  price?: number;
+  title?: string;
 }
 
 /**
@@ -89,33 +92,130 @@ export function ConfirmationDialog({
 }
 
 /**
- * Tlačítko pro koupi kurzu
+ * Tlačítko pro koupi kurzu s Stripe platbou
  */
-export function BuyCourseButton({ courseId, slug }: ButtonProps) {
+export function BuyCourseButton({ courseId, slug, price = 0, title = 'Kurz' }: ButtonProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleStripeCheckout = async () => {
+    try {
+      setIsProcessing(true);
+      
+      // Získat data kurzu pro Stripe
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId,
+          courseSlug: slug,
+          courseTitle: title,
+          price: price,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        // Přesměrovat na Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Nepodařilo se vytvořit platební session');
+      }
+    } catch (error) {
+      console.error('Chyba při vytváření Stripe checkout:', error);
+      alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <Link 
-      href={`/platba?courseId=${courseId}&slug=${slug}`}
+    <button 
+      onClick={handleStripeCheckout}
+      disabled={isProcessing}
       className="btn-primary inline-flex items-center"
     >
-      Koupit kurz <FiArrowRight className="ml-2" />
-    </Link>
+      {isProcessing ? (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+          Zpracovávám...
+        </>
+      ) : (
+        <>
+          <FiCreditCard className="mr-2" />
+          Koupit kurz <FiArrowRight className="ml-2" />
+        </>
+      )}
+    </button>
   );
 }
 
 /**
  * Tlačítko pro nepřihlášené uživatele
  */
-export function GuestButton({ courseId, slug }: ButtonProps) {
+export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: ButtonProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   // Zjistíme, zda jsme na stránce detailu kurzu nebo na seznamu kurzů
   const isDetailPage = typeof window !== 'undefined' && window.location.pathname.includes(`/kurzy/${slug}`);
-  const price = 0; // Toto by mělo být předáno jako prop
   
+  // Pro placené kurzy spustíme Stripe checkout
+  const handlePaidCourse = async () => {
+    try {
+      setIsProcessing(true);
+      
+      // Volání Stripe API
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId,
+          courseSlug: slug,
+          courseTitle: title,
+          price: price,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        // Přesměrovat na Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Nepodařilo se vytvořit platební session');
+      }
+    } catch (error) {
+      console.error('Chyba při vytváření Stripe checkout:', error);
+      alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Pro placené kurzy přesměrujeme na přihlášení, ne přímo na Stripe
+  if (price > 0) {
+    return (
+      <Link 
+        href={`/auth/login?courseId=${courseId}&slug=${slug}&price=${price}&action=purchase`}
+        className="btn-primary inline-flex items-center"
+      >
+        <FiCreditCard className="mr-2" />
+        Koupit za {price} Kč <FiArrowRight className="ml-2" />
+      </Link>
+    );
+  }
+  
+  // Pro kurzy zdarma zachováme link
   return (
     <Link 
       href={isDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}
       className="btn-primary inline-flex items-center"
     >
-      {price === 0 ? 'Získat zdarma' : 'Koupit kurz'} <FiArrowRight className="ml-2" />
+      Získat zdarma <FiArrowRight className="ml-2" />
     </Link>
   );
 }

@@ -55,6 +55,14 @@ const UserMenu = () => {
           </div>
           
           <Link 
+            href="/profil" 
+            className="block px-4 py-2 text-sm hover:bg-neutral-50"
+            onClick={() => setIsOpen(false)}
+          >
+            Můj profil
+          </Link>
+          
+          <Link 
             href="/moje-kurzy" 
             className="block px-4 py-2 text-sm hover:bg-neutral-50"
             onClick={() => setIsOpen(false)}

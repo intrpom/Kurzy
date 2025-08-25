@@ -63,10 +63,17 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
   const handleCourseChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     if (!course) return;
     
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    
+    // Speciální zpracování pro číselná pole
+    let processedValue: any = value;
+    if (type === 'number') {
+      processedValue = value === '' ? 0 : Number(value);
+    }
+    
     setCourse({
       ...course,
-      [name]: value
+      [name]: processedValue
     });
   };
 
@@ -286,7 +293,9 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
         throw new Error(errorData.message || 'Nepodařilo se uložit kurz');
       }
       
-      router.refresh();
+      // Obnovení dat kurzu po úspěšném uložení
+      const updatedCourse = await response.json();
+      setCourse(updatedCourse);
       alert('Kurz byl úspěšně uložen');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nastala neznámá chyba při ukládání');

@@ -5,9 +5,9 @@ import VerifyAuth from '@/components/auth/VerifyAuth';
 export default function VerifyPage({
   searchParams
 }: {
-  searchParams: { token?: string; courseId?: string; email?: string; slug?: string }
+  searchParams: { token?: string; courseId?: string; email?: string; slug?: string; price?: string; action?: string }
 }) {
-  const { token, courseId, email, slug } = searchParams;
+  const { token, courseId, email, slug, price, action } = searchParams;
   
   return (
     <MainLayout>
@@ -23,6 +23,8 @@ export default function VerifyPage({
                   email={email} 
                   courseId={courseId} 
                   slug={slug}
+                  price={price}
+                  action={action}
                 />
               ) : (
                 <div className="text-center py-4">

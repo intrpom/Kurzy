@@ -47,3 +47,4 @@ backups/
 
 # Prisma
 prisma/migrations/
+.env.local.backup

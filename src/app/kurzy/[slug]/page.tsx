@@ -202,12 +202,11 @@ export default async function CourseDetail({ params }: { params: { slug: string 
                 </div>
               </div>
               <div className="mb-4">
-                <Link 
-                  href={`/auth/login?courseId=${course.id}&slug=${course.slug}`}
-                  className={`${course.price === 0 ? 'btn-primary' : 'btn-primary'} inline-flex items-center`}
-                >
-                  {course.price === 0 ? 'Získat přístup zdarma' : `Koupit kurz za ${course.price} Kč`} <FiArrowRight className="ml-2" />
-                </Link>
+                <CourseAccessButton 
+                  courseId={course.id}
+                  slug={course.slug}
+                  price={course.price}
+                />
               </div>
               
               {/* Course Description - přesunuto výše */}
@@ -274,7 +273,7 @@ export default async function CourseDetail({ params }: { params: { slug: string 
                     <div>
                       <h3 className="font-medium">{lesson.title}</h3>
                       <p className="text-sm text-neutral-600">
-                        {module.title}
+                        {lesson.description || module.title}
                       </p>
                     </div>
                   </div>

@@ -255,6 +255,8 @@ export async function PUT(
     try {
       revalidatePath('/kurzy');
       revalidatePath(`/kurzy/${data.slug}`);
+      revalidatePath('/');
+      revalidatePath('/moje-kurzy');
       console.log('Cache byla automaticky vymazána po aktualizaci kurzu');
     } catch (revalidateError) {
       console.error('Chyba při vymazávání cache:', revalidateError);
