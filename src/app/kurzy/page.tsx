@@ -50,7 +50,7 @@ async function getCourses(): Promise<Course[]> {
 export const dynamic = 'force-dynamic';
 
 // Import klientské komponenty
-import CourseCard from './CourseCard';
+import CoursesWithFilters from '@/components/courses/CoursesWithFilters';
 
 // Server komponenta pro zobrazení kurzů
 export default async function Courses() {
@@ -71,37 +71,7 @@ export default async function Courses() {
       {/* Courses Section */}
       <section className="py-12">
         <div className="container-custom">
-          {/* Filters */}
-          <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center">
-              <FiFilter className="mr-2 text-neutral-600" />
-              <span className="font-medium">Filtrovat:</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button className="px-3 py-1 bg-primary-600 text-white rounded-full text-sm">
-                Všechny
-              </button>
-              <button className="px-3 py-1 bg-white border border-neutral-300 text-neutral-700 rounded-full text-sm hover:bg-neutral-50">
-                Zdarma
-              </button>
-              <button className="px-3 py-1 bg-white border border-neutral-300 text-neutral-700 rounded-full text-sm hover:bg-neutral-50">
-                Placené
-              </button>
-              <button className="px-3 py-1 bg-white border border-neutral-300 text-neutral-700 rounded-full text-sm hover:bg-neutral-50">
-                Mindfulness
-              </button>
-              <button className="px-3 py-1 bg-white border border-neutral-300 text-neutral-700 rounded-full text-sm hover:bg-neutral-50">
-                Osobní rozvoj
-              </button>
-            </div>
-          </div>
-
-          {/* Courses Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course: Course, index: number) => (
-              <CourseCard key={course.id} course={course} priority={index === 0} />
-            ))}
-          </div>
+          <CoursesWithFilters courses={courses} />
         </div>
       </section>
 

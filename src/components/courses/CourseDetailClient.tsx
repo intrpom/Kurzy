@@ -22,6 +22,11 @@ export default function CourseDetailClient({ courseId, slug, price, children }: 
     const handleFreeCourseAccess = async () => {
       // Pokud není kurz zdarma, uživatel není přihlášen, nebo již probíhá zpracování, nepokračujeme
       if (!user || loading || price !== 0 || isProcessing) return;
+      
+      // Kontrola - pokud uživatel záměrně navštívil hlavní stránku kurzu, neprovádíme automatické přesměrování
+      if (window.location.pathname.startsWith('/kurzy/')) {
+        return;
+      }
 
       try {
         setIsProcessing(true);

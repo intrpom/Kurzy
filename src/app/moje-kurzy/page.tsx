@@ -124,22 +124,22 @@ export default function MyCoursesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {userCourses.map((course: UserCourse) => (
                 <div key={course.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm">
-                  <div className="grid grid-cols-1 md:grid-cols-3">
-                    <div className="relative h-40 md:h-auto bg-neutral-100">
+                  <div className="flex flex-col">
+                    <div className="relative w-full">
                       {course.imageUrl ? (
                         <img 
                           src={course.imageUrl} 
                           alt={course.title} 
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="w-full h-auto object-cover"
                         />
                       ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
+                        <div className="w-full h-40 bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
                           <span className="text-primary-800 font-serif text-lg">Obrázek kurzu</span>
                         </div>
                       )}
                     </div>
                     
-                    <div className="p-6 md:col-span-2">
+                    <div className="p-6">
                       <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
                       <div className="flex items-center text-sm text-neutral-600 mb-4">
                         <FiClock className="mr-1" />
@@ -228,7 +228,10 @@ export default function MyCoursesPage() {
                 <div className="p-6">
                   <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
                   <p className="text-neutral-700 mb-4">
-                    {course.description}
+                    {course.description.length > 200 
+                      ? `${course.description.substring(0, 200)}...` 
+                      : course.description
+                    }
                   </p>
                   <Link 
                     href={`/kurzy/${course.slug || course.id}`} 

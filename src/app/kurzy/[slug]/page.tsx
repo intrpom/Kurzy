@@ -7,6 +7,9 @@ import prisma from '@/lib/db';
 // Importy pro ReactMarkdown odstraněny, protože používáme dangerouslySetInnerHTML
 import CourseAccessButton from '@/components/courses/CourseAccessButton';
 import CourseDetailClient from '@/components/courses/CourseDetailClient';
+import CourseDescription from '@/components/courses/CourseDescription';
+
+
 
 interface Material {
   id: string;
@@ -211,10 +214,7 @@ export default async function CourseDetail({ params }: { params: { slug: string 
               
               {/* Course Description - přesunuto výše */}
               <div className="mt-4">
-                <h2 className="text-2xl font-serif font-bold mb-3">Popis kurzu</h2>
-                <div className="course-description">
-                  <div dangerouslySetInnerHTML={{ __html: course.description }} />
-                </div>
+                <CourseDescription description={course.description} />
               </div>
             </div>
             <div className="md:w-1/3">

@@ -61,7 +61,7 @@ body {
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md overflow-hidden;
+    @apply bg-white rounded-lg shadow-md;
   }
   
   /* Styly pro HTML obsah v popisu kurzu */
