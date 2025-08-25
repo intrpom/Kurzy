@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
       value: sessionValue,
       httpOnly: true,
       secure: true, // Vždy použít secure pro Vercel
-      sameSite: 'none', // Vždy použít 'none' pro Vercel
+      sameSite: 'lax', // Změna z 'none' na 'lax' pro lepší kompatibilitu
       path: '/',
       // Nepoužíváme doménu v produkci, nechat ji undefined
       domain: undefined, // Nepoužíváme doménu vůbec
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
       value: 'true',
       httpOnly: false,
       secure: true,
-      sameSite: 'none',
+      sameSite: 'lax', // Změna z 'none' na 'lax'
       path: '/',
       domain: undefined,
       maxAge: 60 * 60 * 24 * 7, // 7 dní
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
       value: authToken.userId,
       httpOnly: false,
       secure: true,
-      sameSite: 'none',
+      sameSite: 'lax', // Změna z 'none' na 'lax'
       path: '/',
       domain: undefined,
       maxAge: 60 * 60 * 24 * 7, // 7 dní

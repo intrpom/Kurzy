@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
 
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Načtení Stripe session
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== 'paid') {

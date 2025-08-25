@@ -1,7 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { checkCourseAccess } from '@/api/userCourses';
 import CourseImage from '@/components/CourseImage';
 import CourseAccessButton from '@/components/courses/CourseAccessButton';
+import Link from 'next/link';
+import { FiArrowRight } from 'react-icons/fi';
 
 interface Course {
   id: string;
@@ -22,6 +27,39 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course, priority = false }: CourseCardProps) {
+  const { user, loading } = useAuth();
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const [checkingAccess, setCheckingAccess] = useState<boolean>(false);
+
+  // Kontrola, zda má uživatel přístup ke kurzu
+  useEffect(() => {
+    const fetchCourseAccess = async () => {
+      // Pokud není uživatel přihlášen, nemá přístup
+      if (!user) {
+        setHasAccess(false);
+        return;
+      }
+
+      try {
+        setCheckingAccess(true);
+        
+        const { hasAccess: userHasAccess } = await checkCourseAccess(course.id);
+        setHasAccess(userHasAccess);
+      } catch (error) {
+        console.error('Chyba při kontrole přístupu ke kurzu:', error);
+        setHasAccess(false);
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+
+    if (user && !loading) {
+      fetchCourseAccess();
+    } else if (!loading) {
+      setHasAccess(false);
+    }
+  }, [user, loading, course.id]);
+
   return (
     <div className="card">
       <div className="relative">
@@ -53,11 +91,40 @@ export default function CourseCard({ course, priority = false }: CourseCardProps
           </p>
         </div>
         <div>
-          <CourseAccessButton 
-            courseId={course.id}
-            slug={course.slug}
-            price={Number(course.price)}
-          />
+          {course.price === 0 ? (
+            // Pro kurzy zdarma - stále používáme CourseAccessButton
+            <CourseAccessButton 
+              courseId={course.id}
+              slug={course.slug}
+              price={Number(course.price)}
+            />
+          ) : (
+            // Pro placené kurzy - kontrolujeme přístup uživatele
+            <>
+              {loading || checkingAccess ? (
+                // Loading stav
+                <button className="btn-primary inline-flex items-center justify-center w-full opacity-75 cursor-wait" disabled>
+                  Načítání...
+                </button>
+              ) : user && hasAccess ? (
+                // Uživatel má přístup ke kurzu - "Zahájit kurz"
+                <Link 
+                  href={`/moje-kurzy/${course.slug}`}
+                  className="btn-primary inline-flex items-center justify-center w-full"
+                >
+                  Zahájit kurz <FiArrowRight className="ml-2" />
+                </Link>
+              ) : (
+                // Uživatel nemá přístup - "Zobrazit detail"
+                <Link 
+                  href={`/kurzy/${course.slug}`}
+                  className="btn-primary inline-flex items-center justify-center w-full"
+                >
+                  Zobrazit detail <FiArrowRight className="ml-2" />
+                </Link>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

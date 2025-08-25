@@ -1,9 +1,20 @@
 import Stripe from 'stripe';
 
-// Stripe instance
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-07-30.basil',
-});
+// Stripe instance - vytvoří se až runtime
+let stripeInstance: Stripe | null = null;
+
+export function getStripe(): Stripe {
+  if (!stripeInstance) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not defined');
+    }
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: '2025-07-30.basil',
+    });
+  }
+  return stripeInstance;
+}
 
 // Stripe klíče
 export const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!;
@@ -22,6 +33,7 @@ export interface StripeCheckoutData {
 // Funkce pro vytvoření Checkout Session
 export async function createCheckoutSession(data: StripeCheckoutData) {
   try {
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -58,6 +70,7 @@ export async function createCheckoutSession(data: StripeCheckoutData) {
 // Funkce pro ověření webhook signatury
 export function constructWebhookEvent(payload: string, signature: string) {
   try {
+    const stripe = getStripe();
     return stripe.webhooks.constructEvent(
       payload,
       signature,
