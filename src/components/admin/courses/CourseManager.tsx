@@ -105,25 +105,24 @@ export default function CourseManager({ courseId }: CourseManagerProps) {
     []
   );
   
-  // Efekt pro automatické ukládání při změnách (debounce)
-  useEffect(() => {
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-    
-    if (hasChanges && isOnline) {
-      autoSaveTimerRef.current = setTimeout(() => {
-        console.log('Automatické ukládání po 5 sekundách neaktivity...');
-        handleSave();
-      }, 5000);
-    }
-    
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [hasChanges, isOnline]);
+  // Automatické ukládání je vypnuté - uživatel ukládá manuálně
+  // useEffect(() => {
+  //   if (autoSaveTimerRef.current) {
+  //     clearTimeout(autoSaveTimerRef.current);
+  //   }
+  //   
+  //   if (hasChanges && isOnline) {
+  //     autoSaveTimerRef.current = setTimeout(() => {
+  //       console.log('Automatické ukládání po 5 sekundách neaktivity...');
+  //       handleSave();
+  //     }, 5000);
+  //   }
+  //   
+  //   return () => {
+  //     if (autoSaveTimerRef.current) {
+  //       clearTimeout(autoSaveTimerRef.current);
+  //   };
+  // }, [hasChanges, isOnline]);
   
   // Keyboard shortcuts pro rychlejší práci
   useEffect(() => {
@@ -983,7 +982,7 @@ export default function CourseManager({ courseId }: CourseManagerProps) {
         </div>
       )}
       
-      {/* Informace o změnách */}
+      {/* Informace o změnách - automatické ukládání je vypnuté */}
       {hasChanges && !isSaving && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
           <div className="flex items-center justify-between">
@@ -995,7 +994,7 @@ export default function CourseManager({ courseId }: CourseManagerProps) {
             </div>
             <div className="flex items-center space-x-3">
               <span className="text-xs text-blue-600">
-                Automatické uložení za 5s
+                Uložte změny manuálně
               </span>
               <button
                 onClick={handleSave}

@@ -126,13 +126,18 @@ export async function PUT(
       });
       
       // 2. Zpracování modulů - optimalizované batch operace
-      if (Array.isArray(data.modules)) {
+      // Pokud se neposílají moduly nebo jsou prázdné, PŘESKOČÍME zpracování
+      if (Array.isArray(data.modules) && data.modules.length > 0) {
+        console.log(`Zpracovávám ${data.modules.length} modulů`);
+        
+        // ZDE bude celá logika pro zpracování modulů
         const existingModuleIds = existingCourse.modules.map((m: any) => m.id);
         const newModuleIds = data.modules.map((m: any) => m.id);
         
-        // Batch smazání modulů
+        // Batch smazání modulů - pouze pokud explicitně neexistují v nových datech
         const modulesToDelete = existingModuleIds.filter(id => !newModuleIds.includes(id));
         if (modulesToDelete.length > 0) {
+          console.log(`Mažu moduly: ${modulesToDelete.join(', ')}`);
           await tx.module.deleteMany({
             where: { id: { in: modulesToDelete } }
           });
@@ -163,14 +168,28 @@ export async function PUT(
           }
           
           // Zpracování lekcí
+          // Pokud se neposílají lekce, zachováme existující
+          if (!Array.isArray(moduleData.lessons)) {
+            const existingModule = existingCourse.modules.find((m: any) => m.id === moduleData.id);
+            if (existingModule) {
+              moduleData.lessons = existingModule.lessons || [];
+              console.log(`Zachovávám ${moduleData.lessons.length} existujících lekcí pro modul ${moduleData.title}`);
+            }
+          }
+          
           if (Array.isArray(moduleData.lessons)) {
             const existingLessons = existingCourse.modules
               .find((m: any) => m.id === moduleData.id)?.lessons || [];
             const existingLessonIds = existingLessons.map((l: any) => l.id);
             const newLessonIds = moduleData.lessons.map((l: any) => l.id);
             
+            console.log(`Modul ${moduleData.title}: ${existingLessons.length} existujících lekcí, ${moduleData.lessons.length} nových`);
+            
             // Lekce ke smazání
             const moduleDeleteLessons = existingLessonIds.filter(id => !newLessonIds.includes(id));
+            if (moduleDeleteLessons.length > 0) {
+              console.log(`Mažu lekce: ${moduleDeleteLessons.join(', ')}`);
+            }
             lessonsToDelete.push(...moduleDeleteLessons);
             
             for (const lessonData of moduleData.lessons) {
@@ -228,6 +247,76 @@ export async function PUT(
             data: lessonsToCreate
           });
         }
+        
+        // Zpracování materiálů pro všechny lekce
+        console.log('Zpracovávám materiály pro všechny lekce...');
+        for (const moduleData of data.modules) {
+          if (Array.isArray(moduleData.lessons)) {
+            for (const lessonData of moduleData.lessons) {
+              if (Array.isArray(lessonData.materials)) {
+                console.log(`Lekce ${lessonData.title}: zpracovávám ${lessonData.materials.length} materiálů`);
+                
+                // Načteme existující materiály pro tuto lekci
+                const existingMaterials = await tx.material.findMany({
+                  where: { lessonId: lessonData.id }
+                });
+                
+                // Vytvoříme seznam ID materiálů, které chceme zachovat
+                const newMaterialIds = lessonData.materials
+                  .filter((m: any) => m.id)
+                  .map((m: any) => m.id);
+                
+                // Smažeme materiály, které již nejsou v novém seznamu
+                const materialsToDelete = existingMaterials.filter(
+                  existingMat => !newMaterialIds.includes(existingMat.id)
+                );
+                
+                if (materialsToDelete.length > 0) {
+                  console.log(`Mažu ${materialsToDelete.length} nepotřebných materiálů pro lekci ${lessonData.title}`);
+                  await tx.material.deleteMany({
+                    where: {
+                      id: { in: materialsToDelete.map(m => m.id) }
+                    }
+                  });
+                }
+                
+                // Zpracujeme každý materiál
+                for (const material of lessonData.materials) {
+                  try {
+                    if (material.id) {
+                      // Aktualizace existujícího materiálu
+                      await tx.material.update({
+                        where: { id: material.id },
+                        data: {
+                          title: material.title,
+                          type: material.type,
+                          url: material.url,
+                          content: material.content
+                        }
+                      });
+                    } else {
+                      // Vytvoření nového materiálu
+                      await tx.material.create({
+                        data: {
+                          title: material.title,
+                          type: material.type,
+                          url: material.url,
+                          content: material.content,
+                          lessonId: lessonData.id
+                        }
+                      });
+                    }
+                  } catch (materialError) {
+                    console.error(`Chyba při zpracování materiálu '${material.title}':`, materialError);
+                    // Pokračujeme s dalšími materiály
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else {
+        console.log('Moduly se neposílají nebo jsou prázdné - PŘESKAKUJI zpracování a zachovávám existující');
       }
       
       // Načtení aktualizovaného kurzu s moduly a lekcemi

@@ -194,10 +194,10 @@ export async function saveCourseOptimized(
   try {
     console.log('Optimalizované ukládání kurzu:', course.id);
     
-    // 1. Nejdříve uložíme základní kurz (bez modulů a lekcí)
+    // 1. Uložíme kurz včetně modulů a lekcí
     const courseToSave = {
       ...course,
-      modules: [] // Neukládáme moduly a lekce přes kurz API
+      modules: course.modules || [] // Posíláme moduly a lekce
     };
     
     const courseResponse = await fetch(`/api/courses/${course.id}`, {
@@ -251,17 +251,22 @@ export async function saveCourseOptimized(
             console.log(`Používám batch processing pro ${lessonsToUpdate.length} lekcí`);
             await saveLessonsBatch(lessonsToUpdate);
           } else {
-            // Pro menší množství použijeme paralelní ukládání
-            console.log(`Používám paralelní ukládání pro ${lessonsToUpdate.length} lekcí`);
+            // Pro menší množství použijeme sekvenční ukládání (kvůli stabilitě)
+            console.log(`Používám sekvenční ukládání pro ${lessonsToUpdate.length} lekcí`);
             
-            // Vytvoříme pole Promise pro paralelní ukládání
-            const lessonPromises = lessonsToUpdate.map(async (lesson) => {
+            // Sekvenční ukládání - lekce jedna po druhé
+            const results = [];
+            for (const lesson of lessonsToUpdate) {
               console.log(`Ukládám lekci ${lesson.id}`);
-              return saveLesson(lesson);
-            });
+              try {
+                const result = await saveLesson(lesson);
+                results.push(result);
+              } catch (error) {
+                console.error(`Chyba při ukládání lekce ${lesson.id}:`, error);
+                results.push(null);
+              }
+            }
             
-            // Paralelně spustíme všechny Promise a počkáme na dokončení
-            const results = await Promise.all(lessonPromises);
             const successfulSaves = results.filter(result => result !== null).length;
             
             console.log(`Úspěšně uloženo ${successfulSaves} z ${lessonsToUpdate.length} lekcí`);

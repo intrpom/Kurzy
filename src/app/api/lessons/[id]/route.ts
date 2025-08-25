@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 
-// GET /api/lessons/[id] - Získat jednu lekci podle ID
+// GET /api/lessons/[id] - Načíst lekci
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -31,7 +31,7 @@ export async function GET(
   }
 }
 
-// PUT /api/lessons/[id] - Aktualizovat lekci
+// PUT /api/lessons/[id] - Aktualizovat lekci (BEZ MATERIÁLŮ - zjednodušená verze)
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -52,8 +52,7 @@ export async function PUT(
     }
     
     // Přidáme kontrolu, zda nejde o hromadnou aktualizaci nebo smazání lekcí
-    const url = new URL(request.url);
-    if (url.searchParams.has('bulk') && url.searchParams.get('bulk') === 'true') {
+    if (params.id === 'all' || params.id === '*' || params.id.includes(',')) {
       console.error('Detekován pokus o hromadnou aktualizaci lekcí - tato operace není povolena');
       return NextResponse.json(
         { error: 'Hromadné aktualizace lekcí nejsou povoleny z bezpečnostních důvodů' },
@@ -65,8 +64,7 @@ export async function PUT(
     let data;
     try {
       data = await request.json();
-      console.log('Data lekce k aktualizaci:', { 
-        id: params.id, 
+      console.log(`Přijatá data pro lekci ${params.id}:`, {
         title: data.title,
         materialsCount: Array.isArray(data.materials) ? data.materials.length : 0
       });
@@ -91,11 +89,11 @@ export async function PUT(
       );
     }
     
-    // Příprava dat pro aktualizaci
-    console.log('Přijatá data z requestu:', {
+    // Příprava dat pro aktualizaci (BEZ MATERIÁLŮ)
+    console.log('Připravuji data pro aktualizaci lekce:', {
       title: data.title,
+      description: data.description,
       videoUrl: data.videoUrl,
-      videoLibraryId: data.videoLibraryId,
       duration: data.duration,
       order: data.order
     });
@@ -103,148 +101,41 @@ export async function PUT(
     const updateData = {
       title: data.title,
       description: data.description,
-      duration: data.duration !== undefined ? Number(data.duration) : undefined,
       videoUrl: data.videoUrl,
-      videoLibraryId: data.videoLibraryId,
+      duration: data.duration !== undefined ? Number(data.duration) : undefined,
       order: data.order !== undefined ? Number(data.order) : undefined,
       completed: data.completed
     };
     
     console.log('Data pro aktualizaci lekce:', updateData);
     
-    console.log('Připravená data pro aktualizaci lekce:', updateData);
+    // Aktualizace pouze základních údajů lekce
+    const updatedLesson = await prisma.lesson.update({
+      where: { id: params.id },
+      data: updateData
+    });
     
-    // Aktualizace lekce v transakci spolu s materiály
-    try {
-      // Aktualizace lekce
-      const updatedLesson = await prisma.lesson.update({
-        where: { id: params.id },
-        data: updateData
-      });
+    console.log(`Lekce s ID ${params.id} byla úspěšně aktualizována`);
+    
+    // MATERIÁLY JSOU VYPNUTÉ - zpracovávají se přes hlavní courses API
+    console.log('Přeskakuji zpracování materiálů - řeší se přes courses API');
       
-      console.log(`Lekce s ID ${params.id} byla úspěšně aktualizována`);
-      
-      // Pokud jsou k dispozici materiály, aktualizujeme je
-      // Podrobné logování pro debugování problému s materiály
-      console.log(`Typ dat.materials:`, typeof data.materials);
-      console.log(`Data.materials hodnota:`, data.materials);
-      console.log(`Celý objekt data:`, JSON.stringify(data, null, 2));
-      console.log(`Request headers:`, JSON.stringify(Object.fromEntries(request.headers.entries()), null, 2));
-      
-      // Pokud je materials string (JSON), pokusíme se ho parsovat
-      let materialsArray = data.materials;
-      if (typeof data.materials === 'string') {
-        try {
-          console.log('Pokouším se parsovat materials jako JSON string');
-          materialsArray = JSON.parse(data.materials);
-          console.log('Parsování úspěšné, materials je nyní:', materialsArray);
-        } catch (parseError) {
-          console.error('Chyba při parsování materials jako JSON:', parseError);
-        }
-      }
-      
-      if (Array.isArray(materialsArray)) {
-        console.log(`Aktualizuji ${materialsArray.length} materiálů pro lekci ${params.id}`);
-        console.log(`Detailní výpis materiálů:`, JSON.stringify(materialsArray, null, 2));
-        
-        // Načteme existující materiály
-        const existingMaterials = await prisma.material.findMany({
-          where: { lessonId: params.id }
-        });
-        console.log(`Nalezeno ${existingMaterials.length} existujících materiálů`);
-        
-        // Zpracujeme materiály v transakci pro zajištění konzistence dat
-        await prisma.$transaction(async (tx) => {
-          // Vytvoříme seznam ID materiálů, které chceme zachovat
-          const newMaterialIds = materialsArray
-            .filter(m => m.id) // Filtrujeme pouze materiály s ID
-            .map(m => m.id);
-          
-          // Smažeme pouze materiály, které již nejsou v novém seznamu
-          const materialsToDelete = existingMaterials.filter(
-            existingMat => !newMaterialIds.includes(existingMat.id)
-          );
-          
-          if (materialsToDelete.length > 0) {
-            console.log(`Mažu ${materialsToDelete.length} nepotřebných materiálů`);
-            await tx.material.deleteMany({
-              where: {
-                id: { in: materialsToDelete.map(m => m.id) }
-              }
-            });
-          }
-          
-          // Zpracujeme každý materiál - aktualizujeme existující nebo vytvoříme nové
-          for (const material of materialsArray) {
-            try {
-              console.log(`Zpracovávám materiál:`, {
-                id: material.id || 'nový',
-                title: material.title,
-                type: material.type,
-                url: material.url?.substring(0, 50) + (material.url?.length > 50 ? '...' : ''),
-                contentLength: material.content?.length || 0
-              });
-              
-            
-              // Kontrola, zda máme platné URL pro PDF materiál
-              if (material.type === 'pdf' && (!material.url || material.url.trim() === '')) {
-                console.error(`Chyba: Materiál typu PDF nemá nastavenou URL:`, material);
-                continue; // Přeskočíme tento materiál
-              }
-              
-              if (material.id) {
-                // Aktualizujeme existující materiál
-                const updatedMaterial = await tx.material.update({
-                  where: { id: material.id },
-                  data: {
-                    title: material.title,
-                    type: material.type,
-                    url: material.url,
-                    content: material.content
-                  }
-                });
-                console.log(`Materiál úspěšně aktualizován s ID: ${updatedMaterial.id}`);
-              } else {
-                // Vytvoříme nový materiál
-                const createdMaterial = await tx.material.create({
-                  data: {
-                    title: material.title,
-                    type: material.type,
-                    url: material.url,
-                    content: material.content,
-                    lessonId: params.id
-                  }
-                });
-                console.log(`Materiál úspěšně vytvořen s ID: ${createdMaterial.id}`);
-              }
-            } catch (materialError) {
-              console.error(`Chyba při zpracování materiálu '${material.title}':`, materialError);
-              // Pokračujeme s dalšími materiály i když jeden selže
-            }
-          }
-        });
-      }
-      
-      // Načtení kompletní aktualizované lekce s materiály
-      const completeLesson = await prisma.lesson.findUnique({
-        where: { id: params.id },
-        include: { materials: true }
-      });
-      
-      console.log(`Aktualizace lekce ${params.id} dokončena, vráceno ${completeLesson?.materials?.length || 0} materiálů`);
-      return NextResponse.json(completeLesson);
-    } catch (updateError) {
-      console.error('Chyba při aktualizaci lekce nebo materiálů:', updateError);
-      throw updateError; // Předáme chybu do hlavního catch bloku
-    }
+    // Načtení kompletní aktualizované lekce s materiály
+    const completeLesson = await prisma.lesson.findUnique({
+      where: { id: params.id },
+      include: { materials: true }
+    });
+    
+    console.log(`Aktualizace lekce ${params.id} dokončena, vráceno ${completeLesson?.materials?.length || 0} materiálů`);
+    return NextResponse.json(completeLesson);
+    
   } catch (error) {
     console.error('Chyba při aktualizaci lekce:', error);
-    // Podrobnější informace o chybě
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
     
-    console.error('Detail chyby:', errorMessage);
-    if (errorStack) console.error('Stack trace:', errorStack);
+    // Podrobnější informace o chybě
+    const errorMessage = error instanceof Error ? error.message : 'Neznámá chyba';
+    console.log('Detail chyby:', errorMessage);
+    console.log('Stack trace:', error instanceof Error ? error.stack : 'Nedostupný');
     
     return NextResponse.json(
       { 

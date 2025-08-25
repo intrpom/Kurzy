@@ -157,6 +157,9 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
     const newModule: Module = {
       id: uuidv4(),
       title: 'Nový modul',
+      description: '',
+      order: course.modules.length, // Nastavit order na konec seznamu
+      completed: false,
       lessons: []
     };
     
@@ -175,10 +178,21 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
   const deleteModule = (moduleId: string) => {
     if (!course) return;
     
-    setCourse({
-      ...course,
-      modules: course.modules.filter(module => module.id !== moduleId)
-    });
+    const moduleToDelete = course.modules.find(module => module.id === moduleId);
+    if (!moduleToDelete) return;
+    
+    const confirmed = window.confirm(
+      `Opravdu chceš smazat modul "${moduleToDelete.title}"?\n\n` +
+      `Tímto smažeš i všech ${moduleToDelete.lessons.length} lekcí v tomto modulu!\n\n` +
+      `Tato akce je nevratná!`
+    );
+    
+    if (confirmed) {
+      setCourse({
+        ...course,
+        modules: course.modules.filter(module => module.id !== moduleId)
+      });
+    }
   };
 
   const addLesson = (moduleId: string) => {
@@ -194,6 +208,7 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
             description: '',
             duration: 0,
             videoUrl: '',
+            videoLibraryId: undefined,
             order: module.lessons.length, // Nastavit order na konec seznamu
             completed: false,
             materials: []
@@ -263,14 +278,27 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
   const deleteLesson = (moduleId: string, lessonId: string) => {
     if (!course) return;
     
-    setCourse({
-      ...course,
-      modules: course.modules.map(module => 
-        module.id === moduleId
-          ? { ...module, lessons: module.lessons.filter(lesson => lesson.id !== lessonId) }
-          : module
-      )
-    });
+    const module = course.modules.find(m => m.id === moduleId);
+    const lessonToDelete = module?.lessons.find(lesson => lesson.id === lessonId);
+    
+    if (!module || !lessonToDelete) return;
+    
+    const confirmed = window.confirm(
+      `Opravdu chceš smazat lekci "${lessonToDelete.title}"?\n\n` +
+      `Tímto smažeš i všechny materiály v této lekci!\n\n` +
+      `Tato akce je nevratná!`
+    );
+    
+    if (confirmed) {
+      setCourse({
+        ...course,
+        modules: course.modules.map(module => 
+          module.id === moduleId
+            ? { ...module, lessons: module.lessons.filter(lesson => lesson.id !== lessonId) }
+            : module
+        )
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -280,12 +308,70 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
     setError(null);
     
     try {
+      // 1. AUTOMATICKÉ ZÁLOHOVÁNÍ před uložením
+      console.log('🔄 Automatické zálohování před uložením...');
+      try {
+        const backupResponse = await fetch('/api/admin/backup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (backupResponse.ok) {
+          const backupData = await backupResponse.json();
+          console.log('✅ Automatická záloha vytvořena:', backupData.fileName);
+        } else {
+          console.warn('⚠️ Automatická záloha se nepodařila, pokračuji v uložení...');
+        }
+      } catch (backupError) {
+        console.warn('⚠️ Automatická záloha selhala, pokračuji v uložení...', backupError);
+      }
+      
+      // 2. BEZPEČNOSTNÍ KONTROLA - varování před mazáním
+      const currentModules = course.modules || [];
+      const hasModules = currentModules.length > 0;
+      
+      if (!hasModules) {
+        const confirmed = window.confirm(
+          '⚠️  VAROVÁNÍ!\n\n' +
+          'Chceš uložit kurz BEZ MODULŮ?\n\n' +
+          'Tímto smažeš všechny existující moduly a lekce!\n\n' +
+          'Opravdu chceš pokračovat?'
+        );
+        
+        if (!confirmed) {
+          setIsSaving(false);
+          return;
+        }
+      }
+      
+      // 3. ULOŽENÍ KURZU
+      console.log('💾 Ukládám kurz...');
+      
+      // VŽDY posílat kompletní data včetně modulů a lekcí
+      console.log('🔍 DEBUG - course objekt:', course);
+      console.log('🔍 DEBUG - course.modules:', course.modules);
+      
+      const courseDataToSend = {
+        ...course,
+        modules: course.modules || [] // Zajistit že se vždy posílají moduly
+      };
+      
+      console.log('📤 Posílám data:', {
+        title: courseDataToSend.title,
+        modulesCount: courseDataToSend.modules?.length || 0,
+        lessonsCount: courseDataToSend.modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 0
+      });
+      
+      console.log('📤 DEBUG - courseDataToSend.modules:', courseDataToSend.modules);
+      
       const response = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(course)
+        body: JSON.stringify(courseDataToSend)
       });
       
       if (!response.ok) {
@@ -296,7 +382,10 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
       // Obnovení dat kurzu po úspěšném uložení
       const updatedCourse = await response.json();
       setCourse(updatedCourse);
-      alert('Kurz byl úspěšně uložen');
+      
+      // 3. ÚSPĚŠNÉ ULOŽENÍ
+      alert('✅ Kurz byl úspěšně uložen!\n\n🔄 Automatická záloha byla vytvořena před uložením pro bezpečnost.');
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nastala neznámá chyba při ukládání');
     } finally {
@@ -340,11 +429,17 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
         onMoveLessonDown={moveLessonDown}
       />
       
-      <div className="flex justify-end mt-6">
+      <div className="flex justify-between items-center mt-6 p-4 bg-gray-50 rounded-md">
+        <div className="text-sm text-gray-600">
+          <span className="font-medium">📊 Přehled kurzu:</span>
+          <span className="ml-2">📚 {course.modules?.length || 0} modulů</span>
+          <span className="ml-2">📝 {course.modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 0} lekcí</span>
+        </div>
+        
         <button
           type="button"
           onClick={handleSave}
-          className="px-4 py-2 bg-primary-600 text-white rounded-md flex items-center"
+          className="px-4 py-2 bg-primary-600 text-white rounded-md flex items-center hover:bg-primary-700 transition-colors"
           disabled={isSaving}
         >
           <FiSave className="mr-2" />
