@@ -7,7 +7,7 @@ const nextConfig = {
   // Konfigurace pro potlačení varování o dynamických API trasách
   experimental: {
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'kurzy-three.vercel.app'],
+      allowedOrigins: ['localhost:3000', 'kurzy-three.vercel.app', 'onlinekurzy.ales-kalina.cz'],
     },
   },
   // Potlačení varování o dynamických API trasách

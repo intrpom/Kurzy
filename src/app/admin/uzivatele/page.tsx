@@ -23,6 +23,13 @@ interface User {
   courses: Course[];
 }
 
+interface AvailableCourse {
+  id: string;
+  title: string;
+  slug: string;
+  price: number;
+}
+
 interface Pagination {
   total: number;
   page: number;
@@ -43,6 +50,9 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [availableCourses, setAvailableCourses] = useState<AvailableCourse[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [isAddingCourse, setIsAddingCourse] = useState<boolean>(false);
 
   // Načtení seznamu uživatelů
   const fetchUsers = async (page = 1) => {
@@ -64,9 +74,25 @@ export default function UsersPage() {
     }
   };
 
+  // Načtení dostupných kurzů
+  const fetchAvailableCourses = async () => {
+    try {
+      const response = await fetch('/api/courses');
+      if (!response.ok) {
+        throw new Error(`API odpověděla s chybou: ${response.status}`);
+      }
+      
+      const courses = await response.json();
+      setAvailableCourses(courses);
+    } catch (error) {
+      console.error('Chyba při načítání kurzů:', error);
+    }
+  };
+
   // Načtení uživatelů při prvním renderu
   useEffect(() => {
     fetchUsers();
+    fetchAvailableCourses();
   }, []);
 
   // Formátování data
@@ -88,11 +114,59 @@ export default function UsersPage() {
   // Zobrazení detailu uživatele
   const showUserDetail = (user: User) => {
     setSelectedUser(user);
+    setSelectedCourseId('');
   };
 
   // Zavření detailu uživatele
   const closeUserDetail = () => {
     setSelectedUser(null);
+    setSelectedCourseId('');
+    setIsAddingCourse(false);
+  };
+
+  // Přidání kurzu uživateli
+  const addCourseToUser = async () => {
+    if (!selectedUser || !selectedCourseId) {
+      alert('Vyberte kurz pro přidání');
+      return;
+    }
+
+    setIsAddingCourse(true);
+    try {
+      const response = await fetch('/api/admin/users/add-course', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: selectedUser.email,
+          courseId: selectedCourseId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Kurz "${data.course.title}" byl úspěšně přidán uživateli ${selectedUser.email}`);
+        // Znovu načteme uživatele pro aktualizaci jeho kurzů
+        fetchUsers(pagination.page);
+        setSelectedCourseId('');
+        // Aktualizujeme také detail uživatele
+        if (selectedUser) {
+          const updatedUser = users.find(u => u.id === selectedUser.id);
+          if (updatedUser) {
+            setSelectedUser(updatedUser);
+          }
+        }
+      } else {
+        alert(data.error || 'Nepodařilo se přidat kurz uživateli');
+      }
+    } catch (error) {
+      console.error('Chyba při přidávání kurzu:', error);
+      alert('Nepodařilo se přidat kurz uživateli');
+    } finally {
+      setIsAddingCourse(false);
+    }
   };
 
   // Zobrazení potvrzovacího dialogu pro smazání
@@ -341,6 +415,48 @@ export default function UsersPage() {
                   </div>
                 </div>
                 
+                {/* Přidat nový kurz */}
+                <div className="bg-blue-50 p-4 rounded-md">
+                  <h3 className="text-lg font-medium mb-3">Přidat nový kurz</h3>
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <label htmlFor="courseSelect" className="block text-sm font-medium text-neutral-700 mb-1">
+                        Vyberte kurz
+                      </label>
+                      <select
+                        id="courseSelect"
+                        value={selectedCourseId}
+                        onChange={(e) => setSelectedCourseId(e.target.value)}
+                        className="w-full border border-neutral-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        disabled={isAddingCourse}
+                      >
+                        <option value="">-- Vyberte kurz --</option>
+                        {availableCourses
+                          .filter(course => !selectedUser.courses.some(userCourse => userCourse.id === course.id))
+                          .map((course) => (
+                            <option key={course.id} value={course.id}>
+                              {course.title} {course.price > 0 ? `(${course.price} Kč)` : '(Zdarma)'}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={addCourseToUser}
+                      disabled={!selectedCourseId || isAddingCourse}
+                      className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
+                    >
+                      {isAddingCourse ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                          Přidávám...
+                        </>
+                      ) : (
+                        'Přidat kurz'
+                      )}
+                    </button>
+                  </div>
+                </div>
+
                 {/* Seznam kurzů */}
                 <div>
                   <h3 className="text-lg font-medium mb-3">Kurzy uživatele ({selectedUser.coursesCount})</h3>
