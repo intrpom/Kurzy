@@ -7,12 +7,13 @@ import { FiArrowLeft } from 'react-icons/fi';
 export default function Login({
   searchParams
 }: {
-  searchParams: { courseId?: string, slug?: string, price?: string, action?: string }
+  searchParams: { courseId?: string, slug?: string, price?: string, action?: string, returnUrl?: string }
 }) {
   const courseId = searchParams.courseId;
   const slug = searchParams.slug;
   const price = searchParams.price;
   const action = searchParams.action;
+  const returnUrl = searchParams.returnUrl;
   
   return (
     <MainLayout>
@@ -24,7 +25,9 @@ export default function Login({
             <p className="text-neutral-700 mb-6 text-center">
               {action === 'purchase' 
                 ? `Pro nákup kurzu za ${price} Kč se nejprve přihlaste. Zašleme vám přihlašovací odkaz.`
-                : 'Pro přístup do aplikace s kurzy zadejte své jméno a e-mail. Zašleme vám přihlašovací odkaz.'
+                : returnUrl
+                  ? 'Pro sledování videa se nejprve přihlaste. Zašleme vám přihlašovací odkaz.'
+                  : 'Pro přístup do aplikace s kurzy zadejte své jméno a e-mail. Zašleme vám přihlašovací odkaz.'
               }
             </p>
             
@@ -33,7 +36,10 @@ export default function Login({
             </Suspense>
             
             <div className="mt-8 text-center">
-              <Link href={slug ? `/kurzy/${slug}` : '/'} className="text-neutral-600 hover:text-primary-600 inline-flex items-center">
+              <Link 
+                href={returnUrl ? decodeURIComponent(returnUrl) : (slug ? `/kurzy/${slug}` : '/')} 
+                className="text-neutral-600 hover:text-primary-600 inline-flex items-center"
+              >
                 <FiArrowLeft className="mr-2" /> Zpět
               </Link>
             </div>

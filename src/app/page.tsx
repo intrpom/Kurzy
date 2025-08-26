@@ -71,10 +71,16 @@ export default async function Home() {
                 </Link>
               </div>
             </div>
-            <div className="relative h-64 md:h-96 rounded-lg overflow-hidden shadow-lg">
-              {/* Placeholder for hero image - replace with actual image */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
-                <span className="text-primary-800 font-serif text-xl">Obrázek kurzu</span>
+            <div className="relative rounded-lg overflow-hidden shadow-lg">
+              {/* Hero video */}
+              <div style={{position:"relative",paddingTop:"56.25%"}}>
+                <iframe 
+                  src="https://iframe.mediadelivery.net/embed/271688/d33ae10f-5283-44f9-b8e2-43621c8ac526?autoplay=false&loop=false&muted=false&preload=true&responsive=true" 
+                  loading="lazy" 
+                  style={{border:0,position:"absolute",top:0,height:"100%",width:"100%"}} 
+                  allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" 
+                  allowFullScreen={true}
+                />
               </div>
             </div>
           </div>

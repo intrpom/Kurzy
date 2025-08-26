@@ -4,6 +4,7 @@ import MainLayout from '@/app/MainLayout';
 import BunnyVideoPlayer from '@/components/BunnyVideoPlayer';
 import { BlogPost } from '@/types/blog';
 import { FiPlay } from 'react-icons/fi';
+import ProtectedVideoPlayer from '@/components/ProtectedVideoPlayer';
 
 
 
@@ -132,9 +133,10 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             {/* Video přehrávač */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
               {post.videoUrl && post.videoLibraryId ? (
-                <BunnyVideoPlayer
+                <ProtectedVideoPlayer
                   videoId={post.videoUrl}
                   libraryId={post.videoLibraryId}
+                  title={post.title}
                   className="w-full aspect-video"
                 />
               ) : (

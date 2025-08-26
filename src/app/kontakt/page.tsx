@@ -1,5 +1,6 @@
 import MainLayout from '@/app/MainLayout';
-import { FiMail, FiPhone, FiMapPin, FiInstagram, FiYoutube, FiFacebook } from 'react-icons/fi';
+import { FiMail, FiInstagram, FiYoutube, FiFacebook, FiLinkedin } from 'react-icons/fi';
+import { FaXTwitter, FaTiktok } from 'react-icons/fa6';
 
 export default function ContactPage() {
   return (
@@ -33,8 +34,8 @@ export default function ContactPage() {
                   <div>
                     <h3 className="text-lg font-medium mb-1">E-mail</h3>
                     <p className="text-neutral-700">
-                      <a href="mailto:info@aleskalina.cz" className="hover:text-primary-600">
-                        info@aleskalina.cz
+                      <a href="mailto:zeptejtese@aleskalina.cz" className="hover:text-primary-600">
+                        zeptejtese@aleskalina.cz
                       </a>
                     </p>
                     <p className="text-sm text-neutral-500 mt-1">
@@ -42,50 +43,65 @@ export default function ContactPage() {
                     </p>
                   </div>
                 </div>
-                
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                    <FiPhone className="text-primary-600 text-xl" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium mb-1">Telefon</h3>
-                    <p className="text-neutral-700">
-                      <a href="tel:+420123456789" className="hover:text-primary-600">
-                        +420 123 456 789
-                      </a>
-                    </p>
-                    <p className="text-sm text-neutral-500 mt-1">
-                      Po-Pá, 9:00 - 17:00
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                    <FiMapPin className="text-primary-600 text-xl" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium mb-1">Adresa</h3>
-                    <p className="text-neutral-700">
-                      Náměstí Míru 123<br />
-                      120 00 Praha 2<br />
-                      Česká republika
-                    </p>
-                  </div>
-                </div>
+
               </div>
               
               <div className="mt-8">
                 <h3 className="text-lg font-medium mb-4">Sledujte mě</h3>
-                <div className="flex space-x-4">
-                  <a href="#" className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors">
+                <div className="flex flex-wrap gap-3">
+                  <a 
+                    href="https://www.instagram.com/aleskalina.cz/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors"
+                    title="Instagram"
+                  >
                     <FiInstagram className="text-neutral-700 hover:text-primary-600" />
                   </a>
-                  <a href="#" className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors">
+                  <a 
+                    href="https://www.youtube.com/AlesKalinaTV" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors"
+                    title="YouTube"
+                  >
                     <FiYoutube className="text-neutral-700 hover:text-primary-600" />
                   </a>
-                  <a href="#" className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors">
+                  <a 
+                    href="https://www.facebook.com/ales.kalina" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors"
+                    title="Facebook"
+                  >
                     <FiFacebook className="text-neutral-700 hover:text-primary-600" />
+                  </a>
+                  <a 
+                    href="https://www.linkedin.com/in/aleskalina/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors"
+                    title="LinkedIn"
+                  >
+                    <FiLinkedin className="text-neutral-700 hover:text-primary-600" />
+                  </a>
+                  <a 
+                    href="https://x.com/AlesKalinaTV" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors"
+                    title="X (Twitter)"
+                  >
+                    <FaXTwitter className="text-neutral-700 hover:text-primary-600" />
+                  </a>
+                  <a 
+                    href="https://www.tiktok.com/@kalina.ales" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-primary-100 transition-colors"
+                    title="TikTok"
+                  >
+                    <FaTiktok className="text-neutral-700 hover:text-primary-600" />
                   </a>
                 </div>
               </div>
@@ -166,18 +182,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Map */}
-      <section className="py-12 bg-neutral-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-serif font-bold mb-8 text-center">Kde mě najdete</h2>
-          <div className="h-96 bg-neutral-200 rounded-lg overflow-hidden">
-            {/* Placeholder for map - replace with actual map integration */}
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-neutral-700 font-medium">Mapa s lokací</span>
-            </div>
-          </div>
-        </div>
-      </section>
+
     </MainLayout>
   );
 }
