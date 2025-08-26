@@ -5,10 +5,13 @@ import { updateUserAfterPurchase } from '@/lib/fluentcrm';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🎯 STRIPE WEBHOOK PŘIJAT');
+    
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
+      console.log('❌ Chybí Stripe signatura');
       return NextResponse.json(
         { error: 'Chybí Stripe signatura' },
         { status: 400 }
@@ -17,6 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Ověření webhook signatury
     const event = constructWebhookEvent(body, signature);
+    console.log(`📨 Událost typu: ${event.type}`);
 
     // Zpracování události podle typu
     switch (event.type) {
@@ -29,7 +33,7 @@ export async function POST(request: NextRequest) {
         break;
       
       default:
-        console.log(`Nezpracovaná událost: ${event.type}`);
+        console.log(`ℹ️ Nezpracovaná událost: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
@@ -46,12 +50,31 @@ export async function POST(request: NextRequest) {
 // Zpracování úspěšné platby
 async function handleCheckoutCompleted(session: any) {
   try {
+    console.log('=== STRIPE WEBHOOK: checkout.session.completed ===');
+    console.log('Session ID:', session.id);
+    console.log('Customer email:', session.customer_details?.email);
+    console.log('Session metadata:', session.metadata);
+    
     const { courseId, courseSlug } = session.metadata;
     
     if (!courseId) {
       console.error('Chybí courseId v session metadata');
       return;
     }
+
+    // BEZPEČNOSTNÍ KONTROLA: Ověřit že kurz existuje v naší databázi
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { id: true, title: true, slug: true }
+    });
+
+    if (!course) {
+      console.log(`🚫 WEBHOOK IGNOROVÁN: Kurz s ID "${courseId}" neexistuje v databázi této aplikace`);
+      console.log('=== KONEC WEBHOOK (IGNOROVÁN) ===');
+      return;
+    }
+
+    console.log(`✅ KURZ OVĚŘEN: ${course.title} (${course.slug})`);
 
     // Najít uživatele podle emailu z checkout session
     const user = await prisma.user.findFirst({
@@ -84,37 +107,30 @@ async function handleCheckoutCompleted(session: any) {
       },
     });
 
-    console.log(`Kurz ${courseId} byl úspěšně přidán uživateli ${user.id}`);
+    console.log(`✅ Kurz ${courseId} byl úspěšně přidán uživateli ${user.id}`);
 
     // Přidat uživatele do FluentCRM po nákupu kurzu
     try {
-      console.log('Aktualizuji uživatele v FluentCRM po nákupu kurzu...');
+      console.log('🔄 Aktualizuji uživatele v FluentCRM po nákupu kurzu...');
       
-      // Najít informace o kurzu
-      const course = await prisma.course.findUnique({
-        where: { id: courseId },
-        select: { title: true, slug: true }
-      });
-
-      if (course) {
-        const fluentResponse = await updateUserAfterPurchase(
-          user.email,
-          course.title,
-          course.slug
-        );
-        
-        if (fluentResponse.success) {
-          console.log('Uživatel úspěšně aktualizován v FluentCRM po nákupu:', user.email);
-        } else {
-          console.warn('Nepodařilo se aktualizovat uživatele v FluentCRM:', fluentResponse.message);
-        }
+      // Použijeme již načtený kurz (máme ho z bezpečnostní kontroly)
+      const fluentResponse = await updateUserAfterPurchase(
+        user.email,
+        course.title,
+        course.slug
+      );
+      
+      if (fluentResponse.success) {
+        console.log('✅ Uživatel úspěšně aktualizován v FluentCRM po nákupu:', user.email);
       } else {
-        console.warn('Kurz nenalezen pro FluentCRM aktualizaci:', courseId);
+        console.warn('⚠️ Nepodařilo se aktualizovat uživatele v FluentCRM:', fluentResponse.message);
       }
     } catch (error) {
-      console.error('Chyba při aktualizaci FluentCRM po nákupu:', error);
+      console.error('❌ Chyba při aktualizaci FluentCRM po nákupu:', error);
       // Pokračujeme i když se nepodaří aktualizovat CRM - nekritická chyba
     }
+
+    console.log('=== WEBHOOK ÚSPĚŠNĚ ZPRACOVÁN ===');
 
   } catch (error) {
     console.error('Chyba při zpracování checkout.completed:', error);
