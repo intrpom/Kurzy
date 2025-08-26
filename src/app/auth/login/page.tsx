@@ -24,7 +24,7 @@ export default function Login({
             <p className="text-neutral-700 mb-6 text-center">
               {action === 'purchase' 
                 ? `Pro nákup kurzu za ${price} Kč se nejprve přihlaste. Zašleme vám přihlašovací odkaz.`
-                : 'Pro přístup ke kurzu zadejte svůj e-mail. Zašleme vám přihlašovací odkaz.'
+                : 'Pro přístup do aplikace s kurzy zadejte své jméno a e-mail. Zašleme vám přihlašovací odkaz.'
               }
             </p>
             

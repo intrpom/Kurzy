@@ -21,7 +21,7 @@ function generateExpiryTime(): Date {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, name } = await request.json();
 
     if (!email || !email.includes('@')) {
       return NextResponse.json(
@@ -40,10 +40,17 @@ export async function POST(request: NextRequest) {
       user = await prisma.user.create({
         data: {
           email,
+          name: name || null,
           role: 'user'
         }
       });
       isNewUser = true;
+    } else if (name && (!user.name || user.name !== name)) {
+      // Aktualizovat jméno pokud je zadané a liší se od současného
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { name: name }
+      });
     }
 
     // Zkontrolovat FluentCRM při každém přihlášení (nejen nových uživatelů)
@@ -59,6 +66,7 @@ export async function POST(request: NextRequest) {
       
       const fluentResponse = await addUserToFluentCRM({ 
         email,
+        name: name || undefined,
         source: 'registrace-web'
       });
       

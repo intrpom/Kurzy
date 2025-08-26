@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FiMail } from 'react-icons/fi';
+import { FiMail, FiUser } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormProps {
@@ -13,6 +13,7 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) => {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [magicLinkUrl, setMagicLinkUrl] = useState<string | null>(null);
   const { login, loading, error } = useAuth();
@@ -30,13 +31,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Základní validace e-mailu
+    // Základní validace e-mailu a jména
     if (!email || !email.includes('@') || !email.includes('.')) {
       return;
     }
     
+    if (!name || name.trim().length < 2) {
+      return;
+    }
+    
     try {
-      const result = await login(email);
+      const result = await login(email, name.trim());
       
       if (result.success) {
         setIsSubmitted(true);
@@ -91,6 +96,29 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
         </div>
       )}
       
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-1">
+          Jméno
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FiUser className="text-neutral-500" />
+          </div>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Vaše jméno"
+            required
+            disabled={loading}
+            minLength={2}
+          />
+        </div>
+      </div>
+
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1">
           E-mailová adresa

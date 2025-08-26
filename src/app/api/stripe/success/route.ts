@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+import { updateUserAfterPurchase } from '@/lib/fluentcrm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,6 +106,26 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`Kurz ${courseId} byl úspěšně přidán uživateli ${user.id} po platbě`);
+
+    // Aktualizovat uživatele v FluentCRM po nákupu kurzu
+    try {
+      console.log('Aktualizuji uživatele v FluentCRM po nákupu kurzu (success endpoint)...');
+      
+      const fluentResponse = await updateUserAfterPurchase(
+        user.email,
+        course.title,
+        course.slug
+      );
+      
+      if (fluentResponse.success) {
+        console.log('Uživatel úspěšně aktualizován v FluentCRM po nákupu (success):', user.email);
+      } else {
+        console.warn('Nepodařilo se aktualizovat uživatele v FluentCRM (success):', fluentResponse.message);
+      }
+    } catch (error) {
+      console.error('Chyba při aktualizaci FluentCRM po nákupu (success):', error);
+      // Pokračujeme i když se nepodaří aktualizovat CRM - nekritická chyba
+    }
 
     return NextResponse.json({
       success: true,

@@ -44,11 +44,11 @@ export async function sendLoginEmail(email: string, loginUrl: string): Promise<b
     const data = {
       from: `Aleš Kalina <noreply@${DOMAIN}>`,
       to: email,
-      subject: 'Váš přihlašovací odkaz do kurzu',
+      subject: 'Váš přihlašovací odkaz do aplikace s kurzy',
       text: `
         Dobrý den,
 
-        zde je váš přihlašovací odkaz do kurzu:
+        zde je váš přihlašovací odkaz do aplikace s kurzy:
         ${loginUrl}
 
         Odkaz je platný 24 hodin.
@@ -58,9 +58,9 @@ export async function sendLoginEmail(email: string, loginUrl: string): Promise<b
       `,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Váš přihlašovací odkaz do kurzu</h2>
+          <h2 style="color: #333;">Váš přihlašovací odkaz do aplikace s kurzy</h2>
           <p>Dobrý den,</p>
-          <p>zde je váš přihlašovací odkaz do kurzu:</p>
+          <p>zde je váš přihlašovací odkaz do aplikace s kurzy:</p>
           <p style="margin: 20px 0;">
             <a href="${loginUrl}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
               Přihlásit se

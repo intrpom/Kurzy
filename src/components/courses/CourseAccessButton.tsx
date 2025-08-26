@@ -8,7 +8,6 @@ import {
   LoadingButton,
   StartCourseButton,
   GetFreeCourseButton,
-  ConfirmationDialog,
   BuyCourseButton,
   GuestButton
 } from './CourseAccessButtonStates';
@@ -37,7 +36,7 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
   }, []);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState<boolean>(false);
-  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  const [addingCourse, setAddingCourse] = useState<boolean>(false);
 
   // Kontrola, zda má uživatel přístup ke kurzu
   useEffect(() => {
@@ -72,15 +71,10 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
   const handleAccessCourse = async () => {
     try {
       
-      // Pokud je kurz zdarma a uživatel je přihlášen a nemá přístup, nejprve zobrazíme potvrzení
+      // Pokud je kurz zdarma a uživatel je přihlášen a nemá přístup
       if (price === 0 && user && !hasAccess) {
-        // Pokud není zobrazené potvrzení, zobrazíme ho
-        if (!showConfirmation) {
-          setShowConfirmation(true);
-          return;
-        }
-        
-        // Pokud je zobrazené potvrzení, pokračujeme s přidáním kurzu
+        // Začneme loading okamžitě při prvním kliknutí
+        setAddingCourse(true);
         
         try {
           // Přidáme kurz uživateli
@@ -95,9 +89,6 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
           // Aktualizujeme stav přístupu
           setHasAccess(true);
           
-          // Skryjeme potvrzovací dialog
-          setShowConfirmation(false);
-          
           // Malé zpoždění a pak přesměrování
           setTimeout(() => {
             redirectToCourse(slug, courseId);
@@ -106,6 +97,8 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
           console.error('Chyba při přidávání kurzu:', error);
           alert('Nepodařilo se přidat kurz. Zkuste to prosím později.');
           return;
+        } finally {
+          setAddingCourse(false);
         }
       }
       
@@ -140,17 +133,7 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
   if (user) {
     if (price === 0) {
       // Pro kurzy zdarma
-      if (showConfirmation) {
-        return (
-          <ConfirmationDialog 
-            onConfirm={handleAccessCourse}
-            onCancel={() => setShowConfirmation(false)}
-            isLoading={checkingAccess}
-          />
-        );
-      }
-      
-      return <GetFreeCourseButton onClick={handleAccessCourse} disabled={checkingAccess} />;
+      return <GetFreeCourseButton onClick={handleAccessCourse} disabled={checkingAccess || addingCourse} />;
     } else {
       // Pro placené kurzy - VŽDY BuyCourseButton pro přihlášené uživatele
       return <BuyCourseButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} />;

@@ -13,7 +13,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   error: string | null;
-  login: (email: string) => Promise<{ success: boolean; message: string; url?: string }>;
+  login: (email: string, name?: string) => Promise<{ success: boolean; message: string; url?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 };
@@ -182,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Funkce pro přihlášení
-  const login = async (email: string) => {
+  const login = async (email: string, name?: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -192,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, name }),
       });
 
       const data = await response.json();

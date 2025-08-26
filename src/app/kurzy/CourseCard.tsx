@@ -115,12 +115,12 @@ export default function CourseCard({ course, priority = false }: CourseCardProps
                   Zahájit kurz <FiArrowRight className="ml-2" />
                 </Link>
               ) : (
-                // Uživatel nemá přístup - "Zobrazit detail"
+                // Uživatel nemá přístup - "Detail kurzu"
                 <Link 
                   href={`/kurzy/${course.slug}`}
                   className="btn-primary inline-flex items-center justify-center w-full"
                 >
-                  Zobrazit detail <FiArrowRight className="ml-2" />
+                  Detail kurzu <FiArrowRight className="ml-2" />
                 </Link>
               )}
             </>

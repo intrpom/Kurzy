@@ -297,7 +297,8 @@ export async function addUserToFluentCRM(user: {
     if (existingContact) {
       console.log('FluentCRM: Kontakt již existuje, přidávám pouze do listu "Kurzy":', user.email);
       
-      // Pokud EXISTUJE - pouze přidat do listu "Kurzy" (ID: 1012)
+      // Pokud EXISTUJE - pouze přidat do listu "Kurzy" 
+      // POZOR: ID listu je hardkódované - zkontroluj v FluentCRM admin rozhraní správné ID
       try {
         await fluentCRM.addContactToList(existingContact.id, 1012);
         console.log('FluentCRM: Existující kontakt úspěšně přidán do listu "Kurzy"');
@@ -326,13 +327,22 @@ export async function addUserToFluentCRM(user: {
     const contactResult = await fluentCRM.addContact(contactData);
     
     if (contactResult.success && contactResult.data && contactResult.data.contact) {
-      // 3. Přidat nový kontakt do listu "Kurzy" (ID: 1012)
+      // 3. Přidat nový kontakt do listu "Kurzy"
+      // POZOR: ID listu je hardkódované - zkontroluj v FluentCRM admin rozhraní správné ID
       try {
         console.log('FluentCRM: Přidávám nový kontakt do listu "Kurzy", ID:', contactResult.data.contact.id);
         await fluentCRM.addContactToList(contactResult.data.contact.id, 1012);
         console.log('FluentCRM: Nový kontakt úspěšně přidán do listu "Kurzy"');
       } catch (listError) {
         console.warn('FluentCRM: Nepodařilo se přidat nový kontakt do listu:', listError);
+      }
+
+      // 4. Obnovit tagy kurzů z databáze (pokud uživatel měl kurzy)
+      try {
+        console.log('FluentCRM: Synchronizuji tagy kurzů z databáze pro email:', user.email);
+        await syncUserCourseTags(user.email, contactResult.data.contact.id);
+      } catch (syncError) {
+        console.warn('FluentCRM: Nepodařilo se synchronizovat tagy kurzů:', syncError);
       }
     }
     
@@ -369,13 +379,9 @@ export async function updateUserAfterPurchase(
 
     console.log('FluentCRM: Aktualizuji kontakt po nákupu kurzu:', { email, courseName });
 
-    // Přidat tag pro zakoupený kurz
-    const courseTag = `kurz-${courseSlug}`;
+    // Přidat tag pro zakoupený kurz (pouze slug bez prefixu)
+    const courseTag = courseSlug;
     await fluentCRM.addTagToContact(contact.id, courseTag);
-    await fluentCRM.addTagToContact(contact.id, 'zakaznik');
-
-    // Přidat do listu zákazníků
-    await fluentCRM.addContactToList(contact.id, 'zakaznici');
 
     // Custom fields nepoužíváme
 
@@ -389,6 +395,54 @@ export async function updateUserAfterPurchase(
       success: false, 
       message: error instanceof Error ? error.message : 'Neznámá chyba' 
     };
+  }
+}
+
+/**
+ * Helper funkce pro synchronizaci tagů kurzů z databáze do CRM
+ */
+async function syncUserCourseTags(email: string, contactId: number): Promise<void> {
+  try {
+    // Najít uživatele v databázi podle emailu
+    const { prisma } = await import('@/lib/prisma');
+    
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        userCourses: {
+          include: {
+            course: {
+              select: { slug: true, title: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user || !user.userCourses || user.userCourses.length === 0) {
+      console.log('FluentCRM: Uživatel nemá žádné kurzy k synchronizaci');
+      return;
+    }
+
+    console.log(`FluentCRM: Synchronizuji ${user.userCourses.length} kurzů pro uživatele ${email}`);
+
+    // Přidat tag pro každý kurz, který uživatel má
+    for (const userCourse of user.userCourses) {
+      try {
+        const courseSlug = userCourse.course.slug;
+        console.log(`FluentCRM: Synchronizuji tag kurzu: ${courseSlug}`);
+        
+        await fluentCRM.addTagToContact(contactId, courseSlug);
+        console.log(`FluentCRM: Tag '${courseSlug}' úspěšně synchronizován`);
+      } catch (tagError) {
+        console.warn(`FluentCRM: Nepodařilo se synchronizovat tag kurzu ${userCourse.course.slug}:`, tagError);
+      }
+    }
+
+    console.log('FluentCRM: Synchronizace tagů kurzů dokončena');
+  } catch (error) {
+    console.error('FluentCRM: Chyba při synchronizaci tagů kurzů:', error);
+    throw error;
   }
 }
 
@@ -410,10 +464,9 @@ export async function updateUserAfterFreeCourse(
       });
     }
 
-    // Přidat tag pro free kurz
-    const courseTag = `kurz-${courseSlug}`;
+    // Přidat tag pro free kurz (pouze slug bez prefixu)  
+    const courseTag = courseSlug;
     await fluentCRM.addTagToContact(contact.id, courseTag);
-    await fluentCRM.addTagToContact(contact.id, 'free-user');
 
     // Custom fields nepoužíváme
 

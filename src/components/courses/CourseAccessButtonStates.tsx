@@ -49,7 +49,10 @@ export function GetFreeCourseButton({ onClick, disabled = false }: { onClick: ()
       disabled={disabled}
     >
       {disabled ? (
-        <>Načítám přístup...</>
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+          Kurz pro vás připravujeme...
+        </>
       ) : (
         <>Získat zdarma <FiArrowRight className="ml-2" /></>
       )}
@@ -78,7 +81,14 @@ export function ConfirmationDialog({
           className="btn-primary inline-flex items-center"
           disabled={isLoading}
         >
-          {isLoading ? "Načítám..." : "Ano, získat kurz"}
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Připravujeme kurz...
+            </>
+          ) : (
+            "Ano, získat kurz"
+          )}
         </button>
         <button 
           onClick={onCancel}
@@ -209,13 +219,13 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: Butto
     );
   }
   
-  // Pro kurzy zdarma zachováme link
+  // Pro kurzy zdarma - na seznamu ukážeme "Detail kurzu", na detailu "Získat zdarma"
   return (
     <Link 
       href={isDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}
       className="btn-primary inline-flex items-center"
     >
-      Získat zdarma <FiArrowRight className="ml-2" />
+      {isDetailPage ? 'Získat zdarma' : 'Detail kurzu'} <FiArrowRight className="ml-2" />
     </Link>
   );
 }
