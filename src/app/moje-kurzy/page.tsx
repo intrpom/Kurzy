@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import MainLayout from '@/app/MainLayout';
 import { FiArrowRight, FiClock, FiCheck, FiLock, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
-import CourseImage from '@/components/CourseImage';
 
 // Typy pro data kurzů
 interface LastLesson {
@@ -50,9 +50,9 @@ export default function MyCoursesPage() {
         setError(null);
         
         const response = await fetch('/api/user/courses', {
-          cache: 'no-store',
+          next: { revalidate: 300 }, // 5 minut cache
           headers: {
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'max-age=300'
           }
         });
         
@@ -125,15 +125,19 @@ export default function MyCoursesPage() {
               {userCourses.map((course: UserCourse) => (
                 <div key={course.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm">
                   <div className="flex flex-col">
-                    <div className="relative w-full">
+                    <div className="relative w-full h-48 bg-neutral-100 overflow-hidden">
                       {course.imageUrl ? (
-                        <img 
+                        <Image 
                           src={course.imageUrl} 
                           alt={course.title} 
-                          className="w-full h-auto object-cover"
+                          fill
+                          className="object-cover"
+                          priority={false}
+                          loading="lazy"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         />
                       ) : (
-                        <div className="w-full h-40 bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
+                        <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
                           <span className="text-primary-800 font-serif text-lg">Obrázek kurzu</span>
                         </div>
                       )}
@@ -209,18 +213,22 @@ export default function MyCoursesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {availableCourses.map((course: AvailableCourse) => (
                 <div key={course.id} className="card">
-                <div className="relative h-48 bg-neutral-100">
+                <div className="relative h-48 bg-neutral-100 overflow-hidden rounded-t-lg">
                   {course.imageUrl ? (
-                    <div className="relative" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
-                      <CourseImage 
-                        src={course.imageUrl} 
-                        alt={course.title}
-                        width={400}
-                        height={225}
-                        className="rounded-t-lg"
-                      />
+                    <Image 
+                      src={course.imageUrl} 
+                      alt={course.title}
+                      fill
+                      className="object-cover"
+                      priority={false}
+                      loading="lazy"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
+                      <span className="text-primary-800 font-serif text-lg">Obrázek kurzu</span>
                     </div>
-                  ) : null}
+                  )}
                   <div className="absolute top-4 right-4 bg-primary-600 text-white text-sm font-medium px-2 py-1 rounded">
                     {course.isFree ? 'Zdarma' : `${course.price} Kč`}
                   </div>

@@ -104,4 +104,56 @@ body {
   .course-description blockquote {
     @apply border-l-4 border-primary-200 pl-4 italic my-4;
   }
+
+  /* Optimalizace fontů pro mobilní zařízení */
+  @media (max-width: 768px) {
+    /* Rychlejší načítání - používej system fonty na mobilech */
+    body, * {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+    }
+    
+    /* Pro pomalé připojení - force system font */
+    @media (prefers-reduced-data: reduce) {
+      body, * {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+      }
+    }
+  }
+
+  /* Fallback font pro Bunny.net video přehrávač */
+  .bunny-video-player {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+  }
+
+  /* Mobilní optimalizace pro navigaci lekcí */
+  @media (max-width: 1023px) {
+    .lesson-navigation-mobile {
+      position: sticky;
+      bottom: 0;
+      z-index: 40;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid #e5e5e5;
+      padding: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .lesson-player-container {
+      scroll-margin-top: 2rem;
+    }
+    
+    /* Oprava přetékání textu na mobilech */
+    .lesson-player-container .p-6 {
+      padding: 1rem;
+    }
+    
+    /* Zajištění správného zalamování dlouhých slov */
+    .lesson-player-container h2,
+    .lesson-player-container h3,
+    .lesson-player-container h4 {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+  }
 }

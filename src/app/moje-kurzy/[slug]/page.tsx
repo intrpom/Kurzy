@@ -99,7 +99,7 @@ export default function CoursePage({ params }: { params: { slug: string } }) {
               </div>
               
               {/* Main Content - Lesson Player */}
-              <div className="lg:col-span-2 order-1 lg:order-2">
+              <div className="lg:col-span-2 order-1 lg:order-2 lesson-player-container">
                 <LessonPlayer
                   course={course}
                   currentModuleId={currentModuleId}

@@ -24,41 +24,21 @@ interface Course {
 interface CourseCardProps {
   course: Course;
   priority?: boolean;
+  hasAccess?: boolean;
+  loadingAccess?: boolean;
 }
 
-export default function CourseCard({ course, priority = false }: CourseCardProps) {
+export default function CourseCard({ 
+  course, 
+  priority = false,
+  hasAccess: providedHasAccess = false,
+  loadingAccess = false 
+}: CourseCardProps) {
   const { user, loading } = useAuth();
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-  const [checkingAccess, setCheckingAccess] = useState<boolean>(false);
-
-  // Kontrola, zda má uživatel přístup ke kurzu
-  useEffect(() => {
-    const fetchCourseAccess = async () => {
-      // Pokud není uživatel přihlášen, nemá přístup
-      if (!user) {
-        setHasAccess(false);
-        return;
-      }
-
-      try {
-        setCheckingAccess(true);
-        
-        const { hasAccess: userHasAccess } = await checkCourseAccess(course.id);
-        setHasAccess(userHasAccess);
-      } catch (error) {
-        console.error('Chyba při kontrole přístupu ke kurzu:', error);
-        setHasAccess(false);
-      } finally {
-        setCheckingAccess(false);
-      }
-    };
-
-    if (user && !loading) {
-      fetchCourseAccess();
-    } else if (!loading) {
-      setHasAccess(false);
-    }
-  }, [user, loading, course.id]);
+  
+  // Použít přijatý hasAccess nebo fallback na false pro nepřihlášené uživatele
+  const hasAccess = user ? providedHasAccess : false;
+  const checkingAccess = loadingAccess;
 
   return (
     <div className="card">
@@ -97,11 +77,13 @@ export default function CourseCard({ course, priority = false }: CourseCardProps
               courseId={course.id}
               slug={course.slug}
               price={Number(course.price)}
+              hasAccess={hasAccess}
+              loadingAccess={loadingAccess}
             />
           ) : (
             // Pro placené kurzy - kontrolujeme přístup uživatele
             <>
-              {loading || checkingAccess ? (
+              {loadingAccess ? (
                 // Loading stav
                 <button className="btn-primary inline-flex items-center justify-center w-full opacity-75 cursor-wait" disabled>
                   Načítání...

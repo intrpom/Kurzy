@@ -28,32 +28,28 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const post = await prisma.blogPost.findUnique({
+    // Optimalizace: Kombinace načtení a update v jednom volání
+    const post = await prisma.blogPost.update({
       where: {
         slug: params.slug
+      },
+      data: {
+        views: { increment: 1 }
       }
     });
 
-    if (!post) {
+    return NextResponse.json(post, {
+      headers: corsHeaders(),
+    });
+  } catch (error) {
+    // Pokud post neexistuje, update selže s P2025 - zkusíme jen načtení
+    if (error instanceof Error && error.message.includes('P2025')) {
       return NextResponse.json(
         { error: 'Blog post nebyl nalezen' },
         { status: 404 }
       );
     }
-
-    // Zvýšení počtu zobrazení
-    await prisma.blogPost.update({
-      where: { id: post.id },
-      data: { views: { increment: 1 } }
-    });
-
-    // Vrátíme post s aktualizovaným počtem zobrazení
-    const updatedPost = { ...post, views: post.views + 1 };
-
-    return NextResponse.json(updatedPost, {
-      headers: corsHeaders(),
-    });
-  } catch (error) {
+    
     console.error('Chyba při načítání blog postu:', error);
     return NextResponse.json(
       { error: 'Nepodařilo se načíst blog post' },

@@ -78,6 +78,32 @@ export default function CourseContentManager({ initialCourse, children }: Course
     if (moduleWithLesson) {
       setCurrentModuleId(moduleWithLesson.id);
       setCurrentLessonId(lessonId);
+      
+      // Na mobilních zařízeních scrolluj na video přehrávač
+      // Použijeme requestAnimationFrame pro lepší timing
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const isMobile = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (isMobile) {
+            console.log('Mobile detected, scrolling to top after DOM update...');
+            
+            // Zkusíme scrollIntoView na video container
+            const videoPlayer = document.querySelector('.lesson-player-container');
+            if (videoPlayer) {
+              videoPlayer.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              });
+            } else {
+              // Fallback na window.scrollTo
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            }
+          }
+        });
+      });
     }
   };
 

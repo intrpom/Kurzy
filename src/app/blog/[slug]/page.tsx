@@ -8,15 +8,14 @@ import ProtectedVideoPlayer from '@/components/ProtectedVideoPlayer';
 
 
 
-// Funkce pro načítání jednoho blog postu
+// Zjednodušená funkce pro rychlejší načítání
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    // Použijeme plnou URL i na serveru pro Next.js Server Components
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     
     const response = await fetch(`${baseUrl}/api/blog/${slug}`, {
-      cache: 'no-store', // Pro aktuální počet zobrazení
+      next: { revalidate: 300 }, // Cache na 5 minut (odstraňuji cache: force-cache)
       headers: {
         'User-Agent': 'kurzy-internal-fetch'
       }
@@ -34,33 +33,11 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
   }
 }
 
-// Funkce pro načítání souvisejících videí
+// Zjednodušená funkce - nebudeme zatím načítat související posty
+// pro rychlejší načítání stránky
 async function getRelatedPosts(currentSlug: string, tags: string[]): Promise<BlogPost[]> {
-  try {
-    // Použijeme plnou URL i na serveru pro Next.js Server Components
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    
-    const response = await fetch(`${baseUrl}/api/blog`, {
-      cache: 'no-store',
-      headers: {
-        'User-Agent': 'kurzy-internal-fetch'
-      }
-    });
-    
-    if (!response.ok) return [];
-    
-    const posts: BlogPost[] = await response.json();
-    
-    // Filtruj současný post a vrať jen 3 související
-    return posts
-      .filter(post => post.slug !== currentSlug)
-      .filter(post => tags.some(tag => post.tags.includes(tag)))
-      .slice(0, 3);
-  } catch (error) {
-    console.error('Chyba při načítání souvisejících postů:', error);
-    return [];
-  }
+  // Rychle vrátíme prázdný seznam - eliminujeme pomalé API volání
+  return [];
 }
 
 // Funkce pro formátování délky videa
@@ -111,7 +88,8 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     notFound();
   }
 
-  const relatedPosts = await getRelatedPosts(post.slug, post.tags);
+  // Prozatím nebudeme načítat související posty pro rychlejší loading
+  const relatedPosts: BlogPost[] = [];
 
   return (
     <MainLayout>

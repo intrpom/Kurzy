@@ -44,16 +44,19 @@ export default function ModuleAccordion({
     }
   }, [currentLessonId, module.lessons]);
   
-  // Automatické scrollování na aktuální lekci
+  // Automatické scrollování na aktuální lekci - pouze na desktopu
   useEffect(() => {
     if (currentLessonId && isOpen && currentLessonRef.current) {
-      // Použijeme setTimeout, aby se scrollování provedlo až po vykreslení DOM
-      setTimeout(() => {
-        currentLessonRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }, 100);
+      // Pouze na desktopu - na mobilech to způsobuje konflikty se scrollem na video
+      const isMobile = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (!isMobile) {
+        setTimeout(() => {
+          currentLessonRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }, 100);
+      }
     }
   }, [currentLessonId, isOpen]);
 
@@ -132,7 +135,7 @@ export default function ModuleAccordion({
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className={`font-medium ${currentLessonId === lesson.id ? 'text-primary-700' : ''}`}>
+                      <h4 className={`font-medium break-words leading-snug ${currentLessonId === lesson.id ? 'text-primary-700' : ''}`}>
                         {lesson.title}
                       </h4>
                     </div>

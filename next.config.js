@@ -24,6 +24,20 @@ const nextConfig = {
     // Ignorování TypeScript chyb při buildu
     ignoreBuildErrors: true,
   },
+  // Content Security Policy pro fonty
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "font-src 'self' https://fonts.bunny.net; connect-src 'self' https://fonts.bunny.net;",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

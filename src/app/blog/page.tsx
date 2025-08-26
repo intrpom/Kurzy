@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import MainLayout from '@/app/MainLayout';
 import { FiPlay, FiCalendar, FiClock, FiEye } from 'react-icons/fi';
 
@@ -12,7 +13,7 @@ async function getBlogPosts() {
                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     
     const response = await fetch(`${baseUrl}/api/blog`, {
-      cache: 'no-store',
+      next: { revalidate: 300 }, // Cache na 5 minut
       headers: {
         'User-Agent': 'kurzy-internal-fetch'
       }
@@ -94,20 +95,24 @@ export default async function BlogPage() {
         {/* Blog Posts Grid */}
         {posts.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post: any) => (
+            {posts.map((post: any, index: number) => (
               <Link 
                 key={post.id} 
                 href={`/blog/${post.slug}`}
+                prefetch={false}
                 className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group"
               >
                 {/* Video Thumbnail */}
                 <div className="aspect-video bg-neutral-100 relative overflow-hidden">
                   {post.thumbnailUrl ? (
                     // Zobrazí vlastní nahraný thumbnail
-                    <img 
+                    <Image
                       src={post.thumbnailUrl} 
                       alt={post.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      priority={index < 6}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                   ) : (
                     // Fallback na barevný gradient s play buttonem
@@ -146,10 +151,6 @@ export default async function BlogPage() {
                   {/* Meta informace */}
                   <div className="flex items-center justify-between text-sm text-neutral-500">
                     <div className="flex items-center space-x-4">
-                      <span className="flex items-center">
-                        <FiCalendar className="w-4 h-4 mr-1" />
-                        {formatDate(post.publishedAt)}
-                      </span>
                       {post.duration && (
                         <span className="flex items-center">
                           <FiClock className="w-4 h-4 mr-1" />
@@ -157,10 +158,12 @@ export default async function BlogPage() {
                         </span>
                       )}
                     </div>
-                    <span className="flex items-center">
-                      <FiEye className="w-4 h-4 mr-1" />
-                      {post.views}
-                    </span>
+                    {post.views > 0 && (
+                      <span className="flex items-center">
+                        <FiEye className="w-4 h-4 mr-1" />
+                        {post.views}
+                      </span>
+                    )}
                   </div>
 
                   {/* Tags */}

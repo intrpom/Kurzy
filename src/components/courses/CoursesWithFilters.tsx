@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { FiFilter } from 'react-icons/fi';
 import CourseCard from '@/app/kurzy/CourseCard';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Course {
   id: string;
@@ -24,7 +25,29 @@ interface CoursesWithFiltersProps {
 type FilterType = 'all' | 'free' | 'paid' | 'mindfulness' | 'personal-development';
 
 export default function CoursesWithFilters({ courses }: CoursesWithFiltersProps) {
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [courseAccess, setCourseAccess] = useState<Record<string, boolean>>({});
+  const [loadingAccess, setLoadingAccess] = useState(false); // Start with false to show buttons immediately
+
+  // Batch načtení přístupů ke kurzům - spouštět okamžitě po mount
+  useEffect(() => {
+    const fetchAllCourseAccess = async () => {
+      try {
+        const response = await fetch('/api/user/courses/batch');
+        const data = await response.json();
+        setCourseAccess(data.courseAccess || {});
+      } catch (error) {
+        console.error('Chyba při načítání batch přístupů:', error);
+        setCourseAccess({});
+      } finally {
+        setLoadingAccess(false);
+      }
+    };
+
+    // Okamžitě spustit bez čekání na user context
+    fetchAllCourseAccess();
+  }, []); // Prázdný dependency array = spustit jen jednou při mount
 
   // Filtrování kurzů podle aktivního filtru
   const filteredCourses = useMemo(() => {
@@ -138,7 +161,13 @@ export default function CoursesWithFilters({ courses }: CoursesWithFiltersProps)
       {filteredCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredCourses.map((course: Course, index: number) => (
-            <CourseCard key={course.id} course={course} priority={index === 0} />
+            <CourseCard 
+              key={course.id} 
+              course={course} 
+              priority={index < 6}
+              hasAccess={courseAccess[course.id] || false}
+              loadingAccess={loadingAccess}
+            />
           ))}
         </div>
       ) : (

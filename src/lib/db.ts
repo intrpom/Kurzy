@@ -36,11 +36,8 @@ const prismaClientSingleton = () => {
       databaseUrl = process.env.PRISMA_DATABASE_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL;
     }
     
-    // Logování pro diagnostiku (bez citlivých údajů)
-    if (databaseUrl) {
-      const urlObj = new URL(databaseUrl);
-      console.log(`Připojuji se k databázi: ${urlObj.protocol}//${urlObj.hostname}${urlObj.port ? ':' + urlObj.port : ''}`);
-    } else {
+    // Minimální logování v produkci pro rychlejší pripojení
+    if (!databaseUrl) {
       console.error('KRITICKÁ CHYBA: Žádná databázová URL není k dispozici!');
     }
     
@@ -51,8 +48,8 @@ const prismaClientSingleton = () => {
         },
       },
       log: process.env.NODE_ENV === 'production' 
-        ? ['error', 'warn'] // V produkci logujeme i varování pro lepší diagnostiku
-        : ['query', 'error', 'warn'],
+        ? ['error'] // Minimální logování v produkci
+        : ['error', 'warn'],
     });
   } catch (error) {
     console.error('Chyba při inicializaci Prisma klienta:', error);

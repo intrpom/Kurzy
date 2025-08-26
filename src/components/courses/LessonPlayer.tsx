@@ -94,6 +94,23 @@ export default function LessonPlayer({
         onNavigateLesson(lastLesson.id);
       }
     }
+    
+    // Scroll na video na mobilních zařízeních
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const isMobile = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          console.log('Mobile navigation - scrolling to video...');
+          const videoPlayer = document.querySelector('.lesson-player-container');
+          if (videoPlayer) {
+            videoPlayer.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        }
+      });
+    });
   };
 
   const navigateToNextLesson = () => {
@@ -111,6 +128,23 @@ export default function LessonPlayer({
         onNavigateLesson(nextModule.lessons[0].id);
       }
     }
+    
+    // Scroll na video na mobilních zařízeních
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const isMobile = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          console.log('Mobile navigation - scrolling to video...');
+          const videoPlayer = document.querySelector('.lesson-player-container');
+          if (videoPlayer) {
+            videoPlayer.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        }
+      });
+    });
   };
 
   const handleLessonComplete = () => {
@@ -180,9 +214,9 @@ export default function LessonPlayer({
 
       {/* Informace o lekci */}
       <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-serif font-bold">{currentLesson.title}</h2>
-          <div className="flex items-center text-sm text-neutral-600">
+        <div className="flex items-start justify-between mb-4 gap-4">
+          <h2 className="text-xl lg:text-2xl font-serif font-bold flex-1 min-w-0 break-words">{currentLesson.title}</h2>
+          <div className="flex items-center text-sm text-neutral-600 flex-shrink-0">
             <span>{currentLesson.duration} min</span>
           </div>
         </div>
@@ -237,8 +271,8 @@ export default function LessonPlayer({
           </div>
         )}
 
-        {/* Navigace a tlačítko pro dokončení */}
-        <div className="mt-8 pt-6 border-t border-neutral-200 flex items-center justify-between">
+        {/* Navigace a tlačítko pro dokončení - Desktop */}
+        <div className="hidden lg:flex mt-8 pt-6 border-t border-neutral-200 items-center justify-between">
           <button
             onClick={navigateToPreviousLesson}
             className="btn-outline flex items-center"
@@ -270,6 +304,38 @@ export default function LessonPlayer({
           >
             Další lekce <FiChevronRight className="ml-2" />
           </button>
+        </div>
+
+        {/* Navigace - Mobile Sticky */}
+        <div className="lg:hidden lesson-navigation-mobile">
+          <div className="flex items-center justify-between gap-4">
+            <button
+              onClick={navigateToPreviousLesson}
+              className="btn-outline flex items-center flex-1 justify-center text-sm"
+            >
+              <FiChevronLeft className="mr-1" /> Předchozí
+            </button>
+
+            <button
+              onClick={handleLessonComplete}
+              className={`px-3 py-2 rounded-md flex items-center justify-center text-sm ${
+                isLessonCompleted 
+                  ? 'bg-green-100 text-green-700 border border-green-200' 
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
+              }`}
+              disabled={isLessonCompleted}
+            >
+              <FiCheck className="mr-1" />
+              {isLessonCompleted ? 'OK' : 'Hotovo'}
+            </button>
+
+            <button
+              onClick={navigateToNextLesson}
+              className="btn-outline flex items-center flex-1 justify-center text-sm"
+            >
+              Další <FiChevronRight className="ml-1" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

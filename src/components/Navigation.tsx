@@ -12,26 +12,26 @@ const Navigation = () => {
     <nav className="bg-white shadow-sm">
       <div className="container-custom py-4">
         <div className="flex justify-between items-center">
-          <Link href="/" className="text-2xl font-serif font-bold text-neutral-900 no-underline">
+          <Link href="/" prefetch={false} className="text-2xl font-serif font-bold text-neutral-900 no-underline">
             Aleš Kalina
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center">
             <div className="flex space-x-8 mr-8">
-              <Link href="/" className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
+              <Link href="/" prefetch={false} className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
                 Domů
               </Link>
-              <Link href="/kurzy" className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
+              <Link href="/kurzy" prefetch={false} className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
                 Kurzy
               </Link>
-              <Link href="/blog" className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
+              <Link href="/blog" prefetch={false} className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
                 Blog
               </Link>
-              <Link href="/o-mne" className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
+              <Link href="/o-mne" prefetch={false} className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
                 O mně
               </Link>
-              <Link href="/kontakt" className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
+              <Link href="/kontakt" prefetch={false} className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
                 Kontakt
               </Link>
             </div>
@@ -55,6 +55,7 @@ const Navigation = () => {
             <div className="flex flex-col space-y-4">
               <Link 
                 href="/" 
+                prefetch={false}
                 className="text-neutral-800 hover:text-primary-600 font-medium no-underline"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -62,6 +63,7 @@ const Navigation = () => {
               </Link>
               <Link 
                 href="/kurzy" 
+                prefetch={false}
                 className="text-neutral-800 hover:text-primary-600 font-medium no-underline"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -69,6 +71,7 @@ const Navigation = () => {
               </Link>
               <Link 
                 href="/blog" 
+                prefetch={false}
                 className="text-neutral-800 hover:text-primary-600 font-medium no-underline"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -76,6 +79,7 @@ const Navigation = () => {
               </Link>
               <Link 
                 href="/o-mne" 
+                prefetch={false}
                 className="text-neutral-800 hover:text-primary-600 font-medium no-underline"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -83,6 +87,7 @@ const Navigation = () => {
               </Link>
               <Link 
                 href="/kontakt" 
+                prefetch={false}
                 className="text-neutral-800 hover:text-primary-600 font-medium no-underline"
                 onClick={() => setIsMenuOpen(false)}
               >

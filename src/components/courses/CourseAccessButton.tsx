@@ -16,56 +16,39 @@ interface CourseAccessButtonProps {
   courseId: string;
   slug: string;
   price: number;
+  hasAccess?: boolean;
+  loadingAccess?: boolean;
 }
 
 /**
  * Komponenta pro zobrazení tlačítka pro přístup ke kurzu
  * Zobrazuje různé stavy podle toho, zda je uživatel přihlášen, má přístup ke kurzu a podle ceny kurzu
  */
-export default function CourseAccessButton({ courseId, slug, price }: CourseAccessButtonProps) {
+export default function CourseAccessButton({ 
+  courseId, 
+  slug, 
+  price, 
+  hasAccess: providedHasAccess = false,
+  loadingAccess = false 
+}: CourseAccessButtonProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
   
-  // FORCE RYCHLEJŠÍ LOADING - pokud je loading moc dlouho, zkusíme obejít
-  const [fastLoading, setFastLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFastLoading(false);
-    }, 1000); // 1 sekunda max pro loading
-    return () => clearTimeout(timer);
-  }, []);
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-  const [checkingAccess, setCheckingAccess] = useState<boolean>(false);
   const [addingCourse, setAddingCourse] = useState<boolean>(false);
-
-  // Kontrola, zda má uživatel přístup ke kurzu
-  useEffect(() => {
-    const fetchCourseAccess = async () => {
-      // Pokud není uživatel přihlášen, nemá přístup
-      if (!user) {
-        setHasAccess(false);
-        return;
-      }
-
-      try {
-        setCheckingAccess(true);
-        
-        const { hasAccess: userHasAccess } = await checkCourseAccess(courseId);
-        setHasAccess(userHasAccess);
-      } catch (error) {
-        console.error('Chyba při kontrole přístupu ke kurzu:', error);
-        setHasAccess(false);
-      } finally {
-        setCheckingAccess(false);
-      }
-    };
-
-    if (user && !loading) {
-      fetchCourseAccess();
-    } else if (!loading) {
-      setHasAccess(false);
-    }
-  }, [user, loading, courseId]);
+  
+  // Použít poskytnuté batch data
+  const hasAccess = user ? providedHasAccess : false;
+  
+  // DEBUG: Log pro CourseAccessButton
+  console.log('🎯 CourseAccessButton Debug:', {
+    slug,
+    price,
+    user: !!user,
+    loading,
+    hasAccess,
+    providedHasAccess,
+    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR'
+  });
 
   // Funkce pro přímý přístup ke kurzu
   const handleAccessCourse = async () => {
@@ -86,8 +69,8 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
           }
           
           
-          // Aktualizujeme stav přístupu
-          setHasAccess(true);
+          // Kurz byl přidán úspěšně - reloadneme stránku pro refresh batch dat
+          window.location.reload();
           
           // Malé zpoždění a pak přesměrování
           setTimeout(() => {
@@ -114,13 +97,13 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
 
   // Vykreslení tlačítka podle stavu
   
-  // Načítání autentizace - čekáme na zjištění, zda je uživatel přihlášený (max 1 sekunda)
-  if (loading && fastLoading) {
+  // Načítání batch dat
+  if (loadingAccess) {
     return <LoadingButton />;
   }
   
-  // Načítání kontroly přístupu - pouze pokud víme, že je uživatel přihlášený
-  if (user && checkingAccess) {
+  // Načítání autentizace - ale jen pokud už víme, že user existuje
+  if (loading && user) {
     return <LoadingButton />;
   }
 
@@ -133,7 +116,7 @@ export default function CourseAccessButton({ courseId, slug, price }: CourseAcce
   if (user) {
     if (price === 0) {
       // Pro kurzy zdarma
-      return <GetFreeCourseButton onClick={handleAccessCourse} disabled={checkingAccess || addingCourse} />;
+      return <GetFreeCourseButton onClick={handleAccessCourse} disabled={addingCourse} />;
     } else {
       // Pro placené kurzy - VŽDY BuyCourseButton pro přihlášené uživatele
       return <BuyCourseButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} />;

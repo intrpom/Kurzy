@@ -54,7 +54,7 @@ export default function BunnyVideoPlayer({
   const embedUrl = `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=${autoplay ? 'true' : 'false'}&loop=${loop ? 'true' : 'false'}&muted=${muted ? 'true' : 'false'}&preload=true&responsive=true`;
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative bunny-video-player ${className}`}>
       {isLoading && (
         <div className="absolute inset-0 bg-neutral-800 flex items-center justify-center z-10">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>

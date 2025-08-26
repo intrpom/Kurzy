@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import globalAuthState from '@/lib/global-auth-state';
 
 type User = {
   id: string;
@@ -25,7 +26,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Efekt pro kontrolu autentizace při načtení aplikace
+  // Synchronizace s globálním stavem
+  useEffect(() => {
+    const unsubscribe = globalAuthState.subscribe((state) => {
+      setUser(state.user);
+      setLoading(!state.isInitialized);
+    });
+
+    // Nastavit počáteční stav
+    const currentState = globalAuthState.getState();
+    setUser(currentState.user);
+    setLoading(!currentState.isInitialized);
+
+    return unsubscribe;
+  }, []);
+
+  // Inicializace globálního stavu při načtení aplikace
+  useEffect(() => {
+    globalAuthState.initialize();
+  }, []);
+
+  // Efekt pro kontrolu autentizace při načtení aplikace (zachováváme pro kompatibilitu)
   useEffect(() => {
     // Kontrola, zda je potřeba ověřit autentizaci
     
@@ -45,32 +66,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (authParam && timeDiff < 300000) { // 5 minut
         
-        // Použijeme synchronní XMLHttpRequest pro okamžitou kontrolu autentizace
+        // Použijeme asynchronní XMLHttpRequest pro kontrolu autentizace
         const xhr = new XMLHttpRequest();
         xhr.withCredentials = true;
-        xhr.open('GET', `/api/auth/me?_=${now}`, false); // Synchronní požadavek
+        xhr.open('GET', `/api/auth/me?_=${now}`, true); // Asynchronní požadavek
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         xhr.setRequestHeader('Pragma', 'no-cache');
         xhr.setRequestHeader('Expires', '0');
         
-        try {
-          xhr.send();
-          if (xhr.status >= 200 && xhr.status < 300) {
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
             try {
-              const data = JSON.parse(xhr.responseText);
-              
-              if (data.authenticated && data.user) {
-                setUser(data.user);
-                setLoading(false);
-                return;
+              if (xhr.status >= 200 && xhr.status < 300) {
+                const data = JSON.parse(xhr.responseText);
+                
+                if (data.authenticated && data.user) {
+                  setUser(data.user);
+                  setLoading(false);
+                  
+                  // Vyčistíme příznaky
+                  localStorage.removeItem('recentAuth');
+                  localStorage.removeItem('authTimestamp');
+                  return;
+                }
               }
             } catch (parseError) {
               console.error('Chyba při parsování odpovědi:', parseError);
             }
+            
+            // V případě chyby nebo neúspěchu pokračujeme v normálním toku
+            setLoading(false);
           }
+        };
+        
+        try {
+          xhr.send();
         } catch (xhrError) {
-          console.error('Chyba při synchronním XHR:', xhrError);
+          console.error('Chyba při asynchronním XHR:', xhrError);
+          setLoading(false);
         }
       }
     }
@@ -78,21 +112,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Standardní kontrola autentizace
     checkAuth();
     
-    // Timeout pro loading stav - pokud se autentifikace nezdaří do 0.5 sekundy, zobrazíme jako nepřihlášeného
+    // Timeout pro loading stav - pokud se autentifikace nezdaří do 0.2 sekundy, zobrazíme jako nepřihlášeného
     const timeoutId = setTimeout(() => {
       setLoading(false);
-    }, 500);
+    }, 200);
     
     return () => clearTimeout(timeoutId);
   }, []);
 
   // Funkce pro kontrolu autentizace
   const checkAuth = async () => {
-    // Timeout pro checkAuth - pokud se nezdaří do 1 sekundy, zobrazíme jako nepřihlášeného
+    // Timeout pro checkAuth - pokud se nezdaří do 0.3 sekundy, zobrazíme jako nepřihlášeného
     const timeoutId = setTimeout(() => {
       setLoading(false);
       setUser(null);
-    }, 1000);
+    }, 300);
     
     try {
       setLoading(true);
@@ -226,6 +260,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       localStorage.removeItem('recentAuth');
       localStorage.removeItem('authTimestamp');
+      
+      // Aktualizuj globální stav
+      globalAuthState.logout();
     } catch (err) {
       console.error('Chyba při odhlašování:', err);
       setError('Došlo k chybě při odhlašování');

@@ -154,7 +154,7 @@ export default function AboutPage() {
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-32 h-48 md:h-40 relative rounded-lg overflow-hidden flex-shrink-0">
                   <Image
-                    src="/images/emocni-rovnice.webp"
+                    src="/images/emocni-rovnice.jpg"
                     alt="Emoční rovnice - kniha"
                     fill
                     className="object-cover"

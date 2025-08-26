@@ -169,7 +169,17 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: Butto
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Zjistíme, zda jsme na stránce detailu kurzu nebo na seznamu kurzů
-  const isDetailPage = typeof window !== 'undefined' && window.location.pathname.includes(`/kurzy/${slug}`);
+  const isDetailPage = typeof window !== 'undefined' && 
+    (window.location.pathname === `/kurzy/${slug}` || window.location.pathname.startsWith(`/kurzy/${slug}/`));
+  
+  // DEBUG: Log pro kontrolu detekce
+  console.log('🔍 GuestButton Debug:', {
+    slug,
+    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
+    expectedPath: `/kurzy/${slug}`,
+    isDetailPage,
+    price
+  });
   
   // Pro placené kurzy spustíme Stripe checkout
   const handlePaidCourse = async () => {
@@ -219,13 +229,13 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: Butto
     );
   }
   
-  // Pro kurzy zdarma - na seznamu ukážeme "Detail kurzu", na detailu "Získat zdarma"
+  // Pro kurzy zdarma - na seznamu ukážeme "Detail kurzu", na detailu "Získat kurz (je zdarma)"
   return (
     <Link 
       href={isDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}
       className="btn-primary inline-flex items-center"
     >
-      {isDetailPage ? 'Získat zdarma' : 'Detail kurzu'} <FiArrowRight className="ml-2" />
+      {isDetailPage ? 'Získat kurz (je zdarma)' : 'Detail kurzu'} <FiArrowRight className="ml-2" />
     </Link>
   );
 }
