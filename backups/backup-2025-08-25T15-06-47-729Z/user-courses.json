@@ -1,0 +1,65 @@
+[
+  {
+    "id": "cmcsfgjdu0001fs0v41wiyjr5",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-07-07T01:33:36.931Z",
+    "updatedAt": "2025-07-07T01:33:36.931Z"
+  },
+  {
+    "id": "cmeesi51j0001n1thkud4rzg0",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27iy000en1pvx3rtwhqe",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-16T21:49:24.872Z",
+    "updatedAt": "2025-08-16T21:49:24.872Z"
+  },
+  {
+    "id": "cmeeukypd0001qib3k05jtx3s",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27c80000n1pv09wcuao7",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-16T22:47:35.858Z",
+    "updatedAt": "2025-08-16T22:47:35.858Z"
+  },
+  {
+    "id": "cmeewcaa30005qi15e2tx8lz0",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmeevq2bj0003qi15znu3aenm",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-16T23:36:50.188Z",
+    "updatedAt": "2025-08-16T23:36:50.188Z"
+  },
+  {
+    "id": "cmer1byrc0004o9fvo8a0zyq4",
+    "userId": "cmer1bugt0002o9fv5x8l09w1",
+    "courseId": "cmcoz27c80000n1pv09wcuao7",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-25T11:29:47.448Z",
+    "updatedAt": "2025-08-25T11:29:47.448Z"
+  },
+  {
+    "id": "cmer1g5ie0006o9fv1zej62j5",
+    "userId": "cmer1bugt0002o9fv5x8l09w1",
+    "courseId": "cmeevq2bj0003qi15znu3aenm",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-25T11:33:02.823Z",
+    "updatedAt": "2025-08-25T11:33:02.823Z"
+  },
+  {
+    "id": "cmer2wxj60001o9njf30naa8e",
+    "userId": "cmer1bugt0002o9fv5x8l09w1",
+    "courseId": "cmcoz27iy000en1pvx3rtwhqe",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-25T12:14:05.250Z",
+    "updatedAt": "2025-08-25T12:14:05.353Z"
+  }
+]

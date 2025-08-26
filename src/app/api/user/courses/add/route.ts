@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/db';
+import { updateUserAfterFreeCourse } from '@/lib/fluentcrm';
 
 // Explicitně označit tuto API trasu jako dynamickou
 export const dynamic = 'force-dynamic';
@@ -105,6 +106,41 @@ export async function POST(request: NextRequest) {
     });
     
     console.log('Kurz úspěšně přidán uživateli:', { userId, courseId });
+    
+    // Aktualizovat uživatele v FluentCRM po přidání free kurzu
+    try {
+      console.log('Aktualizuji uživatele v FluentCRM po přidání free kurzu...');
+      
+      // Najít informace o uživateli a kurzu
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true }
+      });
+      
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { title: true, slug: true }
+      });
+
+      if (user && course) {
+        const fluentResponse = await updateUserAfterFreeCourse(
+          user.email,
+          course.title,
+          course.slug
+        );
+        
+        if (fluentResponse.success) {
+          console.log('Uživatel úspěšně aktualizován v FluentCRM po free kurzu:', user.email);
+        } else {
+          console.warn('Nepodařilo se aktualizovat uživatele v FluentCRM:', fluentResponse.message);
+        }
+      } else {
+        console.warn('Uživatel nebo kurz nenalezen pro FluentCRM aktualizaci');
+      }
+    } catch (error) {
+      console.error('Chyba při aktualizaci FluentCRM po free kurzu:', error);
+      // Pokračujeme i když se nepodaří aktualizovat CRM - nekritická chyba
+    }
     
     return NextResponse.json({
       success: true,

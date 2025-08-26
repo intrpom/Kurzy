@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { constructWebhookEvent } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
+import { updateUserAfterPurchase } from '@/lib/fluentcrm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +85,36 @@ async function handleCheckoutCompleted(session: any) {
     });
 
     console.log(`Kurz ${courseId} byl úspěšně přidán uživateli ${user.id}`);
+
+    // Přidat uživatele do FluentCRM po nákupu kurzu
+    try {
+      console.log('Aktualizuji uživatele v FluentCRM po nákupu kurzu...');
+      
+      // Najít informace o kurzu
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { title: true, slug: true }
+      });
+
+      if (course) {
+        const fluentResponse = await updateUserAfterPurchase(
+          user.email,
+          course.title,
+          course.slug
+        );
+        
+        if (fluentResponse.success) {
+          console.log('Uživatel úspěšně aktualizován v FluentCRM po nákupu:', user.email);
+        } else {
+          console.warn('Nepodařilo se aktualizovat uživatele v FluentCRM:', fluentResponse.message);
+        }
+      } else {
+        console.warn('Kurz nenalezen pro FluentCRM aktualizaci:', courseId);
+      }
+    } catch (error) {
+      console.error('Chyba při aktualizaci FluentCRM po nákupu:', error);
+      // Pokračujeme i když se nepodaří aktualizovat CRM - nekritická chyba
+    }
 
   } catch (error) {
     console.error('Chyba při zpracování checkout.completed:', error);

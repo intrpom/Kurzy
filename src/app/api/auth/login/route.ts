@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import crypto from 'crypto';
 import { sendLoginEmail } from '@/lib/mailgun';
+import { addUserToFluentCRM } from '@/lib/fluentcrm';
 
 // Explicitně označit tuto API trasu jako dynamickou
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
       where: { email }
     });
 
+    let isNewUser = false;
     if (!user) {
       user = await prisma.user.create({
         data: {
@@ -41,6 +43,37 @@ export async function POST(request: NextRequest) {
           role: 'user'
         }
       });
+      isNewUser = true;
+    }
+
+    // Zkontrolovat FluentCRM při každém přihlášení (nejen nových uživatelů)
+    try {
+      console.log('Kontroluji FluentCRM při přihlášení uživatele:', email);
+      
+      // Nejprve test připojení (pouze pro debug)
+      if (process.env.NODE_ENV !== 'production') {
+        const { fluentCRM } = await import('@/lib/fluentcrm');
+        const testResult = await fluentCRM.testConnection();
+        console.log('FluentCRM test připojení:', testResult);
+      }
+      
+      const fluentResponse = await addUserToFluentCRM({ 
+        email,
+        source: 'registrace-web'
+      });
+      
+      if (fluentResponse.success) {
+        if (isNewUser) {
+          console.log('Nový uživatel přidán do FluentCRM:', email);
+        } else {
+          console.log('Existující uživatel v FluentCRM zkontrolován:', email);
+        }
+      } else {
+        console.warn('Nepodařilo se zkontrolovat/přidat uživatele do FluentCRM:', fluentResponse.message);
+      }
+    } catch (error) {
+      console.error('Chyba při komunikaci s FluentCRM:', error);
+      // Pokračujeme i když se nepodaří komunikovat s CRM - nekritická chyba
     }
 
     // Vytvořit nový token

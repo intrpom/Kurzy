@@ -1,0 +1,18 @@
+[
+  {
+    "id": "cmcs7xfli0000c00wts055dwf",
+    "email": "akalina@seznam.cz",
+    "name": null,
+    "role": "admin",
+    "createdAt": "2025-07-06T22:02:48.245Z",
+    "updatedAt": "2025-07-08T22:26:57.252Z"
+  },
+  {
+    "id": "cmer1bugt0002o9fv5x8l09w1",
+    "email": "kalina-ales@seznam.cz",
+    "name": "Pepa",
+    "role": "user",
+    "createdAt": "2025-08-25T11:29:41.886Z",
+    "updatedAt": "2025-08-25T11:40:48.102Z"
+  }
+]
