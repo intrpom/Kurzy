@@ -13,6 +13,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  isInitialized: boolean;
   error: string | null;
   login: (email: string, name?: string) => Promise<{ success: boolean; message: string; url?: string }>;
   logout: () => Promise<void>;
@@ -24,201 +25,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Synchronizace s globálním stavem
+  // Synchronizace s globálním stavem - JEDINÉ místo kde se čte stav
   useEffect(() => {
     const unsubscribe = globalAuthState.subscribe((state) => {
       setUser(state.user);
       setLoading(!state.isInitialized);
+      setIsInitialized(state.isInitialized);
     });
 
     // Nastavit počáteční stav
     const currentState = globalAuthState.getState();
     setUser(currentState.user);
     setLoading(!currentState.isInitialized);
+    setIsInitialized(currentState.isInitialized);
+
+    // Inicializovat POUZE pokud ještě není inicializováno
+    if (!currentState.isInitialized) {
+      globalAuthState.initialize();
+    }
 
     return unsubscribe;
   }, []);
 
-  // Inicializace globálního stavu při načtení aplikace
-  useEffect(() => {
-    globalAuthState.initialize();
-  }, []);
+  // Již nepotřebujeme žádné další useEffect - vše řeší GlobalAuthState
 
-  // Efekt pro kontrolu autentizace při načtení aplikace (zachováváme pro kompatibilitu)
-  useEffect(() => {
-    // Kontrola, zda je potřeba ověřit autentizaci
-    
-    // Zkontrolujeme, zda je nastaven příznak recentAuth z VerifyAuth komponenty
-    const recentAuth = localStorage.getItem('recentAuth');
-    const authTimestamp = localStorage.getItem('authTimestamp');
-    
-    if (recentAuth === 'true' && authTimestamp) {
-      const now = Date.now();
-      const timestamp = parseInt(authTimestamp, 10);
-      const timeDiff = now - timestamp;
-      
-      
-      // Zkontrolujeme, zda je v URL parametr auth (značí nedávné přesměrování)
-      const urlParams = new URLSearchParams(window.location.search);
-      const authParam = urlParams.get('auth');
-      
-      if (authParam && timeDiff < 300000) { // 5 minut
-        
-        // Použijeme asynchronní XMLHttpRequest pro kontrolu autentizace
-        const xhr = new XMLHttpRequest();
-        xhr.withCredentials = true;
-        xhr.open('GET', `/api/auth/me?_=${now}`, true); // Asynchronní požadavek
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        xhr.setRequestHeader('Pragma', 'no-cache');
-        xhr.setRequestHeader('Expires', '0');
-        
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4) {
-            try {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                const data = JSON.parse(xhr.responseText);
-                
-                if (data.authenticated && data.user) {
-                  setUser(data.user);
-                  setLoading(false);
-                  
-                  // Vyčistíme příznaky
-                  localStorage.removeItem('recentAuth');
-                  localStorage.removeItem('authTimestamp');
-                  return;
-                }
-              }
-            } catch (parseError) {
-              console.error('Chyba při parsování odpovědi:', parseError);
-            }
-            
-            // V případě chyby nebo neúspěchu pokračujeme v normálním toku
-            setLoading(false);
-          }
-        };
-        
-        try {
-          xhr.send();
-        } catch (xhrError) {
-          console.error('Chyba při asynchronním XHR:', xhrError);
-          setLoading(false);
-        }
-      }
-    }
-    
-    // Standardní kontrola autentizace
-    checkAuth();
-    
-    // Timeout pro loading stav - pokud se autentifikace nezdaří do 0.2 sekundy, zobrazíme jako nepřihlášeného
-    const timeoutId = setTimeout(() => {
-      setLoading(false);
-    }, 200);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Funkce pro kontrolu autentizace
+  // Zjednodušená funkce pro kontrolu autentizace - deleguje na GlobalAuthState
   const checkAuth = async () => {
-    // Timeout pro checkAuth - pokud se nezdaří do 0.3 sekundy, zobrazíme jako nepřihlášeného
-    const timeoutId = setTimeout(() => {
-      setLoading(false);
-      setUser(null);
-    }, 300);
-    
-    try {
-      setLoading(true);
-      
-      
-      // Zkontrolujeme, zda je nastaven příznak recentAuth z VerifyAuth komponenty
-      const recentAuth = localStorage.getItem('recentAuth');
-      const authTimestamp = localStorage.getItem('authTimestamp');
-      
-      if (recentAuth === 'true' && authTimestamp) {
-        const now = Date.now();
-        const timestamp = parseInt(authTimestamp, 10);
-        const timeDiff = now - timestamp;
-        
-        
-        // Zkontrolujeme, zda je nastavená cookie user_id (non-httpOnly cookie)
-        const userIdCookie = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('user_id='));
-          
-        if (userIdCookie && timeDiff < 60000) {
-          
-          // Použijeme XMLHttpRequest pro kontrolu autentizace
-          const xhr = new XMLHttpRequest();
-          xhr.withCredentials = true; // Důležité pro cross-origin požadavky s cookies
-          xhr.open('GET', `/api/auth/me?_=${now}`, false); // Synchronní požadavek
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-          xhr.setRequestHeader('Pragma', 'no-cache');
-          xhr.setRequestHeader('Expires', '0');
-          
-          try {
-            xhr.send();
-            if (xhr.status >= 200 && xhr.status < 300) {
-              const data = JSON.parse(xhr.responseText);
-              
-              if (data.authenticated && data.user) {
-                setUser(data.user);
-                setLoading(false);
-                return; // Úspěšná autentizace, končíme
-              }
-            }
-          } catch (xhrError) {
-            console.error('Chyba při synchronním XHR:', xhrError);
-            // Pokračujeme na standardní fetch
-          }
-        }
-      }
-      
-      // Standardní kontrola pomocí fetch
-      const timestamp = Date.now();
-      
-      try {
-        // Použijeme fetch s explicitním nastavením pro cookies
-        const response = await fetch(`/api/auth/me?_=${timestamp}`, { 
-          method: 'GET',
-          cache: 'no-store',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          },
-          credentials: 'include', // Důležité pro zahrání cookies
-          mode: 'cors' // Explicitní nastavení CORS
-        });
-        
-        const data = await response.json();
-
-        if (data.authenticated && data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (fetchError) {
-        console.error('Chyba při fetch kontrole autentizace:', fetchError);
-        setUser(null);
-      }
-    } catch (err) {
-      // V případě chyby nastavíme uživatele na null
-      console.error('Chyba při kontrole autentizace:', err);
-      setUser(null);
-    } finally {
-      clearTimeout(timeoutId);
-      setLoading(false);
+    // Pokud již probíhá inicializace, neděláme nic
+    if (globalAuthState.isInitialized()) {
+      return;
     }
+    
+    // Jinak spustíme reinicializaci
+    await globalAuthState.reinitialize();
   };
 
   // Funkce pro přihlášení
   const login = async (email: string, name?: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
       setError(null);
 
       const response = await fetch('/api/auth/login', {
@@ -253,26 +101,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Funkce pro odhlášení
   const logout = async () => {
     try {
-      setLoading(true);
       await fetch('/api/auth/logout', {
         method: 'POST',
       });
-      setUser(null);
+      
+      // Vyčistit localStorage
       localStorage.removeItem('recentAuth');
       localStorage.removeItem('authTimestamp');
       
-      // Aktualizuj globální stav
+      // Aktualizuj globální stav - toto automaticky aktualizuje i lokální stav
       globalAuthState.logout();
     } catch (err) {
       console.error('Chyba při odhlašování:', err);
       setError('Došlo k chybě při odhlašování');
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, isInitialized, error, login, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );

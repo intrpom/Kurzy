@@ -233,7 +233,7 @@ export default function AboutPage() {
           <p className="text-lg mb-8 max-w-2xl mx-auto">
             Objevte sílu Emočních rovnic a změňte svůj život k lepšímu. Každý člověk má nárok na skvělý život a naplnění svých tužeb a vizí.
           </p>
-          <Link href="/kurzy" className="btn bg-white text-primary-700 hover:bg-neutral-100 inline-flex items-center">
+          <Link href="/kurzy" prefetch={false} className="btn bg-white text-primary-700 hover:bg-neutral-100 inline-flex items-center">
             Prozkoumat kurzy <FiArrowRight className="ml-2" />
           </Link>
         </div>

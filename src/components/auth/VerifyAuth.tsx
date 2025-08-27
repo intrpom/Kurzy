@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiCheck, FiX, FiLoader } from 'react-icons/fi';
-import { useAuth } from '@/contexts/AuthContext';
+import globalAuthState from '@/lib/global-auth-state';
 
 interface VerifyAuthProps {
   token: string;
@@ -17,24 +17,13 @@ interface VerifyAuthProps {
 const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, price, action }) => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState<string>('Ověřujeme váš přihlašovací odkaz...');
-  const { checkAuth } = useAuth();
   const router = useRouter();
   
   // Použijeme useRef pro sledování, zda již bylo ověření provedeno
   const verificationAttempted = useRef<boolean>(false);
 
   useEffect(() => {
-    
-    // Vždy ověříme token, i když již byl dříve ověřen
-    // Odstraníme všechny předchozí příznaky autentizace
-    localStorage.removeItem(`token_verified_${token}`);
-    localStorage.removeItem('auth_verified');
-    localStorage.removeItem('auth_verified_time');
-    localStorage.removeItem('isAuthenticated');
-    sessionStorage.removeItem('skipAuthCheck');
-    
-    
-    // Nastavíme stav na loading
+    // Jednoduché řešení - jen kontrola verificationAttempted
     setStatus('loading');
     setMessage('Ověřuji váš přihlašovací token...');
 
@@ -93,17 +82,17 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
           setStatus('success');
           setMessage('Přihlášení bylo úspěšné!');
           
-          // Explicitně zavoláme checkAuth() pro aktualizaci stavu autentizace
-          try {
-            // Počkáme na dokončení kontroly autentizace
-            await checkAuth();
-          } catch (error) {
-            console.error('Chyba při kontrole autentizace:', error);
+          // Uložíme uživatele do localStorage a aktualizujeme stav
+          if (data.user) {
+            globalAuthState.login(data.user);
+          } else {
+            // Fallback - reinicializace pokud nejsou user data
+            try {
+              await globalAuthState.reinitialize();
+            } catch (error) {
+              console.error('Chyba při reinicializaci autentizace:', error);
+            }
           }
-          
-          // Nastavení příznaků v localStorage pro optimalizaci
-          localStorage.setItem('recentAuth', 'true');
-          localStorage.setItem('authTimestamp', Date.now().toString());
           
           // Uložení informace o ověření tokenu do sessionStorage
           const tokenKey = `verified_${token}`;
@@ -173,39 +162,13 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
           // Nastavíme příznak pro tento konkrétní token, že byl úspěšně ověřen
           localStorage.setItem(`token_verified_${token}`, 'true');
           
-          // Vytvoříme iframe pro načtení API endpointu /api/auth/me
-          // Toto zajistí, že cookies budou správně nastavené před přesměrováním
-          const authCheckIframe = document.createElement('iframe');
-          authCheckIframe.style.display = 'none';
-          authCheckIframe.src = `/api/auth/me?_=${Date.now()}`;
-          document.body.appendChild(authCheckIframe);
+          // Už nepotřebujeme iframe - globalAuthState se postará o správné načtení
           
           
-          // Počkáme 2 sekundy, aby se iframe načetl a cookies se správně nastavily
+          // Jednoduché přesměrování
           setTimeout(() => {
-            
-            // Použijeme form submit pro přesměrování, což zajistí přenos cookies
-            const form = document.createElement('form');
-            form.method = 'GET';
-            form.action = redirectUrl;
-            
-            // Přidáme timestamp jako parametr pro zabránění cachování
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = '_';
-            input.value = Date.now().toString();
-            form.appendChild(input);
-            
-            // Přidáme parametr auth=true pro označení, že jde o přesměrování po autentizaci
-            const authInput = document.createElement('input');
-            authInput.type = 'hidden';
-            authInput.name = 'auth';
-            authInput.value = 'true';
-            form.appendChild(authInput);
-            
-            document.body.appendChild(form);
-            form.submit();
-          }, 2000);
+            window.location.href = redirectUrl;
+          }, 800);
         } else {
           setStatus('error');
           setMessage(data.error || 'Při ověřování přihlašovacího odkazu došlo k chybě.');
@@ -229,7 +192,7 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
     return () => {
       verificationAttempted.current = false;
     }
-  }, [token, email, courseId, slug, router]);
+  }, [token]); // Běží jen když se změní token (což se nikdy nestane)
 
   return (
     <div className="text-center py-8">

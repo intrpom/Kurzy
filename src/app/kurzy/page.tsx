@@ -4,6 +4,7 @@ import MainLayout from '../MainLayout';
 import { FiFilter } from 'react-icons/fi';
 import prisma from '@/lib/db';
 import { Suspense } from 'react';
+import { cookies } from 'next/headers';
 
 interface Course {
   id: string;
@@ -36,13 +37,58 @@ async function getCourses(): Promise<Course[]> {
       }
     });
     
-    // Debug: vypíšeme ceny kurzů s timestampem
-    const timestamp = new Date().toISOString();
-    
     return courses;
   } catch (error) {
     console.error('Chyba při načítání kurzů:', error);
     return [];
+  }
+}
+
+// Funkce pro získání přístupu uživatele ke kurzům přímo z databáze
+async function getUserCourseAccess(): Promise<Record<string, boolean>> {
+  try {
+    const sessionCookie = cookies().get('session');
+    
+    if (!sessionCookie) {
+      console.log('🔒 Nepřihlášený uživatel - žádný přístup ke kurzům');
+      return {};
+    }
+
+    let sessionData;
+    try {
+      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+      
+      // Kontrola expirace
+      if (sessionData.exp < Math.floor(Date.now() / 1000)) {
+        console.log('🔒 Session vypršela - žádný přístup ke kurzům');
+        return {};
+      }
+    } catch (sessionError) {
+      console.log('🔒 Neplatná session - žádný přístup ke kurzům');
+      return {};
+    }
+
+    // Načíst všechny UserCourse záznamy pro tohoto uživatele
+    const userCourses = await prisma.userCourse.findMany({
+      where: {
+        userId: sessionData.userId || sessionData.id,
+      },
+      select: {
+        courseId: true,
+      },
+    });
+
+    // Vytvořit mapu courseId -> hasAccess
+    const courseAccess: Record<string, boolean> = {};
+    userCourses.forEach(uc => {
+      courseAccess[uc.courseId] = true;
+    });
+
+    console.log(`✅ Načten přístup pro ${userCourses.length} kurzů`);
+    return courseAccess;
+  } catch (error) {
+    console.error('Chyba při načítání přístupu ke kurzům:', error);
+    return {};
   }
 }
 
@@ -54,7 +100,13 @@ import CoursesWithFilters from '@/components/courses/CoursesWithFilters';
 
 // Server komponenta pro zobrazení kurzů
 export default async function Courses() {
-  const courses = await getCourses();
+  // Získat kurzy a přístup uživatele PARALELNĚ na serveru
+  const [courses, userCourseAccess] = await Promise.all([
+    getCourses(),
+    getUserCourseAccess()
+  ]);
+
+  console.log(`📚 Načteno ${courses.length} kurzů, přístup ke ${Object.keys(userCourseAccess).length} kurzům`);
 
   return (
     <MainLayout>
@@ -71,7 +123,7 @@ export default async function Courses() {
       {/* Courses Section */}
       <section className="py-12">
         <div className="container-custom">
-          <CoursesWithFilters courses={courses} />
+          <CoursesWithFilters courses={courses} userCourseAccess={userCourseAccess} />
         </div>
       </section>
 
@@ -80,9 +132,9 @@ export default async function Courses() {
         <div className="container-custom text-center">
           <h2 className="text-3xl font-serif font-bold mb-4">Nenašli jste, co hledáte?</h2>
           <p className="text-lg text-neutral-700 mb-8 max-w-2xl mx-auto">
-            Kontaktujte mě s vašimi dotazy nebo návrhy na nová témata kurzů.
+            Kontaktujte mě s vašími dotazy nebo návrhy na nová témata kurzů.
           </p>
-          <Link href="/kontakt" className="btn-outline">
+          <Link href="/kontakt" prefetch={false} className="btn-outline">
             Kontaktujte mě
           </Link>
         </div>

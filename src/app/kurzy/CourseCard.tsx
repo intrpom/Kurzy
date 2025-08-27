@@ -92,6 +92,7 @@ export default function CourseCard({
                 // Uživatel má přístup ke kurzu - "Zahájit kurz"
                 <Link 
                   href={`/moje-kurzy/${course.slug}`}
+                  prefetch={false}
                   className="btn-primary inline-flex items-center justify-center w-full"
                 >
                   Zahájit kurz <FiArrowRight className="ml-2" />
@@ -100,6 +101,7 @@ export default function CourseCard({
                 // Uživatel nemá přístup - "Detail kurzu"
                 <Link 
                   href={`/kurzy/${course.slug}`}
+                  prefetch={false}
                   className="btn-primary inline-flex items-center justify-center w-full"
                 >
                   Detail kurzu <FiArrowRight className="ml-2" />

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import AdminHeader from './AdminHeader';
 import AdminLoading from './AdminLoading';
 import logger from '@/utils/logger';
@@ -17,46 +18,32 @@ export default function BackupPageClient() {
   const [scriptResult, setScriptResult] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Kontrola, zda je uživatel admin
+  // Kontrola admin přístupu pomocí optimalizovaného auth systému
+  const { user, loading, isInitialized } = useAuth();
+  
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        logger.info('Kontroluji přihlášení uživatele...');
-        const response = await fetch('/api/auth/me');
-        
-        if (!response.ok) {
-          logger.warn('Uživatel není přihlášen nebo nemá přístup');
-          router.push('/auth/login');
-          return;
-        }
-        
-        const data = await response.json();
-        
-        // Kontrola různých variant administrátorských rolí
-        const adminRoles = ['admin', 'administrator', 'Admin', 'ADMIN'];
-        if (!data.role || !adminRoles.includes(data.role)) {
-          logger.warn('Uživatel nemá administrátorská práva', { role: data.role || 'undefined' });
-          // Pouze logujeme, ale nepřesměrováváme - pokud je uživatel v admin sekci, pravděpodobně má přístup
-          // router.push('/');
-          // return;
-          
-          // Místo přesměrování nastavíme isAdmin na true pro účely testování
-          logger.info('Povoluji přístup pro testování');
-          setIsAdmin(true);
-          return;
-        }
-        
-        logger.info('Uživatel je administrátor', { userId: data.id });
-        setIsAdmin(true);
-      } catch (err) {
-        logger.error('Chyba při kontrole přihlášení', err);
-        setError('Nastala chyba při ověření přihlášení');
-        router.push('/auth/login');
-      }
+    // Čekáme na inicializaci GlobalAuthState před jakoukoliv kontrolou
+    if (!isInitialized) return; 
+    
+    if (!user) {
+      logger.warn('Uživatel není přihlášen');
+      router.push('/auth/login');
+      return;
     }
     
-    checkAuth();
-  }, [router]);
+    // Kontrola admin role
+    const adminRoles = ['admin', 'administrator', 'Admin', 'ADMIN'];
+    if (!user.role || !adminRoles.includes(user.role)) {
+      logger.warn('Uživatel nemá administrátorská práva', { role: user.role || 'undefined' });
+      // Pro testování povolujeme přístup
+      logger.info('Povoluji přístup pro testování');
+      setIsAdmin(true);
+      return;
+    }
+    
+    logger.info('Uživatel je administrátor', { userId: user.id });
+    setIsAdmin(true);
+  }, [user, isInitialized, router]);
 
   // Zobrazit loading stav, dokud neověříme, že uživatel je admin
   if (isAdmin === null) {

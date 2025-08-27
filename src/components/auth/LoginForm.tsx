@@ -16,6 +16,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
   const [name, setName] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [magicLinkUrl, setMagicLinkUrl] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { login, loading, error } = useAuth();
 
   // Funkce pro přidání parametrů do magic linku
@@ -30,13 +31,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     
-    // Základní validace e-mailu a jména
+    // Viditelná validace s chybovými hláškami
     if (!email || !email.includes('@') || !email.includes('.')) {
+      setValidationError('Zadejte prosím platnou e-mailovou adresu');
       return;
     }
     
     if (!name || name.trim().length < 2) {
+      setValidationError('Zadejte prosím vaše jméno (alespoň 2 znaky)');
       return;
     }
     
@@ -52,6 +56,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
       }
     } catch (err) {
       console.error('Chyba při přihlašování:', err);
+      setValidationError('Došlo k chybě při odesílání. Zkuste to prosím znovu.');
     }
   };
 
@@ -90,9 +95,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
+      {(error || validationError) && (
         <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">
-          {error}
+          {validationError || error}
         </div>
       )}
       
@@ -144,9 +149,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
       <div>
         <button
           type="submit"
-          className="w-full btn-primary flex justify-center"
+          className="w-full btn-primary flex justify-center items-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:scale-100"
           disabled={loading}
         >
+          {loading && (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          )}
           {loading ? 'Odesílání...' : 'Odeslat přihlašovací odkaz'}
         </button>
       </div>

@@ -1,33 +1,25 @@
-'use client';
-
 import Link from 'next/link';
-import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import MainLayout from '@/app/MainLayout';
-import { FiArrowRight, FiClock, FiCheck, FiLock, FiAlertCircle } from 'react-icons/fi';
-import { useAuth } from '@/contexts/AuthContext';
-
-// Typy pro data kurzů
-interface LastLesson {
-  title: string;
-  module: string;
-}
+import MainLayout from '../MainLayout';
+import { FiArrowRight, FiBookOpen, FiClock, FiPlay } from 'react-icons/fi';
+import prisma from '@/lib/db';
+import { cookies } from 'next/headers';
 
 interface UserCourse {
   id: string;
-  slug: string;
   title: string;
   description: string;
   imageUrl?: string;
+  slug?: string;
   progress: number;
-  lessonsCompleted: number;
   totalLessons: number;
-  lastLesson: LastLesson | null;
+  lastLesson?: {
+    title: string;
+    moduleTitle: string;
+  };
 }
 
 interface AvailableCourse {
   id: string;
-  slug: string;
   title: string;
   description: string;
   imageUrl?: string;
@@ -35,165 +27,256 @@ interface AvailableCourse {
   isFree: boolean;
 }
 
-export default function MyCoursesPage() {
-  const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<AvailableCourse[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    // Funkce pro načtení dat kurzů
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/user/courses', {
-          next: { revalidate: 300 }, // 5 minut cache
-          headers: {
-            'Cache-Control': 'max-age=300'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Nepodařilo se načíst data kurzů');
-        }
-        
-        const data = await response.json();
-        setUserCourses(data.userCourses || []);
-        setAvailableCourses(data.availableCourses || []);
-      } catch (err) {
-        console.error('Chyba při načítání kurzů:', err);
-        setError('Nepodařilo se načíst data kurzů');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Načíst data pouze pokud je uživatel přihlášen
-    if (user) {
-      fetchCourses();
-    } else {
-      setLoading(false);
+// Server funkce pro získání uživatele ze session
+async function getCurrentUser() {
+  try {
+    const sessionCookie = cookies().get('session');
+    
+    if (!sessionCookie) {
+      return null;
     }
-  }, [user]);
+
+    let sessionData;
+    try {
+      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+      
+      // Kontrola expirace
+      if (sessionData.exp < Math.floor(Date.now() / 1000)) {
+        return null;
+      }
+    } catch (sessionError) {
+      return null;
+    }
+
+    // Získat aktuální data uživatele
+    const user = await prisma.user.findUnique({
+      where: { id: sessionData.userId || sessionData.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true
+      }
+    });
+
+    return user;
+  } catch (error) {
+    console.error('Chyba při získávání uživatele:', error);
+    return null;
+  }
+}
+
+// Server funkce pro získání kurzů uživatele
+async function getUserCourses(userId: string): Promise<{ userCourses: UserCourse[], availableCourses: AvailableCourse[] }> {
+  try {
+    // Získat kurzy uživatele včetně detailů o kurzích
+    const userCoursesData = await prisma.userCourse.findMany({
+      where: {
+        userId: userId
+      },
+      include: {
+        course: {
+          include: {
+            modules: {
+              include: {
+                lessons: true
+              },
+              orderBy: {
+                order: 'asc'
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      }
+    });
+    
+    // Transformovat data pro frontend
+    const formattedCourses = userCoursesData.map((userCourse: any) => {
+      // Spočítat celkový počet lekcí
+      let totalLessons = 0;
+      userCourse.course.modules.forEach((module: any) => {
+        totalLessons += module.lessons.length;
+      });
+      
+      // Najít poslední lekci (pro pokračování v kurzu)
+      const lastModule = userCourse.course.modules[0];
+      const lastLesson = lastModule?.lessons[0];
+      
+      return {
+        id: userCourse.course.id,
+        title: userCourse.course.title,
+        description: userCourse.course.description,
+        imageUrl: userCourse.course.imageUrl,
+        slug: userCourse.course.slug,
+        progress: userCourse.progress,
+        totalLessons,
+        lastLesson: lastLesson ? {
+          title: lastLesson.title,
+          moduleTitle: lastModule.title
+        } : undefined
+      };
+    });
+    
+    // Získat dostupné kurzy (volné kurzy, které uživatel ještě nemá)
+    const userCourseIds = userCoursesData.map(uc => uc.courseId);
+    
+    const availableCoursesData = await prisma.course.findMany({
+      where: {
+        AND: [
+          { price: 0 }, // Pouze zdarma kurzy
+          { id: { notIn: userCourseIds } } // Které uživatel ještě nemá
+        ]
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        price: true
+      }
+    });
+    
+    const formattedAvailableCourses = availableCoursesData.map(course => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      imageUrl: course.imageUrl,
+      price: course.price,
+      isFree: course.price === 0
+    }));
+    
+    return {
+      userCourses: formattedCourses,
+      availableCourses: formattedAvailableCourses
+    };
+  } catch (error) {
+    console.error('Chyba při načítání kurzů uživatele:', error);
+    return { userCourses: [], availableCourses: [] };
+  }
+}
+
+// Stránka se dynamicky generuje bez cache
+export const dynamic = 'force-dynamic';
+
+// Server komponenta
+export default async function MyCoursesPage() {
+  // Získat uživatele
+  const user = await getCurrentUser();
+  
+  // Pokud není přihlášen, zobrazit login zprávu
+  if (!user) {
+    return (
+      <MainLayout>
+        <section className="py-16 bg-neutral-50">
+          <div className="container-custom">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="text-4xl md:text-5xl font-serif font-bold mb-6">Moje kurzy</h1>
+              <p className="text-lg text-neutral-600 mb-8">
+                Pro zobrazení vašich kurzů se prosím přihlaste do svého účtu.
+              </p>
+              <Link href="/auth/login" prefetch={false} className="btn-primary">
+                Přihlásit se
+              </Link>
+            </div>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
+
+  // Získat kurzy uživatele
+  const { userCourses, availableCourses } = await getUserCourses(user.id);
+
+  console.log(`👤 Uživatel ${user.name}: ${userCourses.length} kurzů, ${availableCourses.length} dostupných`);
 
   return (
     <MainLayout>
       {/* Header */}
-      <section className="bg-gradient-to-b from-neutral-50 to-white py-12">
+      <section className="py-16 bg-neutral-50">
         <div className="container-custom">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-center">Moje kurzy</h1>
-          <p className="text-lg text-neutral-700 text-center max-w-2xl mx-auto mt-4">
-            Vítejte ve vašem osobním prostoru pro vzdělávání. Zde najdete všechny své kurzy a můžete pokračovat ve studiu.
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-center mb-4">Moje kurzy</h1>
+          <p className="text-lg text-neutral-700 text-center max-w-2xl mx-auto">
+            Vítejte zpět, {user.name}! Zde najdete všechny vaše kurzy a můžete pokračovat ve svém vzdělávání.
           </p>
         </div>
       </section>
 
-      {/* My Courses */}
-      <section className="py-12 bg-white">
+      {/* User Courses */}
+      <section className="py-12">
         <div className="container-custom">
-          <h2 className="text-2xl font-serif font-bold mb-6">Vaše kurzy</h2>
+          <h2 className="text-2xl font-serif font-bold mb-8">Vaše kurzy</h2>
           
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 p-6 rounded-lg text-center">
-              <FiAlertCircle className="text-red-500 text-3xl mx-auto mb-2" />
-              <p className="text-red-700">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition">
-                Zkusit znovu
-              </button>
-            </div>
-          ) : !user ? (
-            <div className="bg-neutral-50 p-8 rounded-lg text-center">
-              <h3 className="text-xl font-medium mb-2">Pro zobrazení kurzů se přihlaste</h3>
-              <p className="text-neutral-600 mb-4">
-                Pro přístup k vašim kurzům se prosím přihlaste do svého účtu.
-              </p>
-              <Link href="/auth/login" className="btn-primary">
-                Přihlásit se
-              </Link>
-            </div>
-          ) : userCourses.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {userCourses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {userCourses.map((course: UserCourse) => (
-                <div key={course.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm">
-                  <div className="flex flex-col">
-                    <div className="relative w-full h-48 bg-neutral-100 overflow-hidden">
-                      {course.imageUrl ? (
-                        <Image 
-                          src={course.imageUrl} 
-                          alt={course.title} 
-                          fill
-                          className="object-cover"
-                          priority={false}
-                          loading="lazy"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="relative h-48 bg-neutral-100">
+                    {course.imageUrl ? (
+                      <img 
+                        src={course.imageUrl} 
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <FiBookOpen className="text-4xl text-neutral-400" />
+                      </div>
+                    )}
+                    {/* Progress Bar */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+                      <div className="bg-white/20 rounded-full h-2 mb-2">
+                        <div 
+                          className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${course.progress}%` }}
                         />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
-                          <span className="text-primary-800 font-serif text-lg">Obrázek kurzu</span>
+                      </div>
+                      <p className="text-white text-sm font-medium">
+                        {course.progress}% dokončeno
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
+                    <p className="text-neutral-700 mb-4 line-clamp-2">
+                      {course.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-sm text-neutral-600 mb-4">
+                      <div className="flex items-center">
+                        <FiBookOpen className="mr-1" />
+                        <span>{course.totalLessons} lekcí</span>
+                      </div>
+                      {course.lastLesson && (
+                        <div className="flex items-center">
+                          <FiPlay className="mr-1" />
+                          <span className="truncate max-w-32">{course.lastLesson.title}</span>
                         </div>
                       )}
                     </div>
                     
-                    <div className="p-6">
-                      <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
-                      <div className="flex items-center text-sm text-neutral-600 mb-4">
-                        <FiClock className="mr-1" />
-                        <span>Dokončeno {course.lessonsCompleted} z {course.totalLessons} lekcí</span>
-                      </div>
-                      
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Pokrok</span>
-                          <span className="font-medium">{course.progress}%</span>
-                        </div>
-                        <div className="w-full h-2 bg-neutral-200 rounded-full">
-                          <div 
-                            className="h-full bg-primary-600 rounded-full" 
-                            style={{ width: `${course.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      
-                      <div className="mb-4 p-3 bg-neutral-50 rounded-md">
-                        <p className="text-sm text-neutral-600 mb-1">Poslední lekce:</p>
-                        {course.lastLesson ? (
-                          <>
-                            <p className="font-medium">{course.lastLesson.title}</p>
-                            <p className="text-sm text-neutral-500">{course.lastLesson.module}</p>
-                          </>
-                        ) : (
-                          <p className="font-medium">Žádná lekce není k dispozici</p>
-                        )}
-                      </div>
-                      
-                      <Link 
-                        href={`/moje-kurzy/${course.slug || course.id}`} 
-                        className="btn-primary inline-flex items-center"
-                      >
-                        Pokračovat v kurzu <FiArrowRight className="ml-2" />
-                      </Link>
-                    </div>
+                    <Link 
+                      href={`/moje-kurzy/${course.slug || course.id}`} 
+                      prefetch={false}
+                      className="btn-primary inline-flex items-center justify-center w-full"
+                    >
+                      Pokračovat v kurzu <FiArrowRight className="ml-2" />
+                    </Link>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="bg-neutral-50 p-8 rounded-lg text-center">
-              <h3 className="text-xl font-medium mb-2">{user ? 'Zatím nemáte žádné kurzy' : 'Pro zobrazení kurzů se přihlaste'}</h3>
+              <h3 className="text-xl font-medium mb-2">Zatím nemáte žádné kurzy</h3>
               <p className="text-neutral-600 mb-4">
-                {user ? 'Prozkoumejte naši nabídku kurzů a začněte svou vzdělávací cestu.' : 'Pro přístup k vašim kurzům se prosím přihlaste do svého účtu.'}
+                Prozkoumejte naši nabídku kurzů a začněte svou vzdělávací cestu.
               </p>
-              <Link href={user ? '/kurzy' : '/auth/login'} className="btn-primary">
-                {user ? 'Prozkoumat kurzy' : 'Přihlásit se'}
+              <Link href="/kurzy" prefetch={false} className="btn-primary">
+                Prozkoumat kurzy
               </Link>
             </div>
           )}
@@ -201,69 +284,46 @@ export default function MyCoursesPage() {
       </section>
 
       {/* Recommended Courses */}
-      <section className="py-12 bg-neutral-50">
-        <div className="container-custom">
-          <h2 className="text-2xl font-serif font-bold mb-6">Doporučené kurzy</h2>
-          
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-            </div>
-          ) : availableCourses.length > 0 ? (
+      {availableCourses.length > 0 && (
+        <section className="py-12 bg-neutral-50">
+          <div className="container-custom">
+            <h2 className="text-2xl font-serif font-bold mb-8">Doporučené kurzy zdarma</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {availableCourses.map((course: AvailableCourse) => (
-                <div key={course.id} className="card">
-                <div className="relative h-48 bg-neutral-100 overflow-hidden rounded-t-lg">
-                  {course.imageUrl ? (
-                    <Image 
-                      src={course.imageUrl} 
-                      alt={course.title}
-                      fill
-                      className="object-cover"
-                      priority={false}
-                      loading="lazy"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-300 flex items-center justify-center">
-                      <span className="text-primary-800 font-serif text-lg">Obrázek kurzu</span>
+                <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="relative h-48 bg-neutral-100">
+                    {course.imageUrl ? (
+                      <img 
+                        src={course.imageUrl} 
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <FiBookOpen className="text-4xl text-neutral-400" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-6">
+                    <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
+                    <p className="text-neutral-700 mb-4 line-clamp-2">
+                      {course.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-green-600">Zdarma</span>
+                      <Link href="/kurzy" prefetch={false} className="btn-primary">
+                        Zpět na moje kurzy
+                      </Link>
                     </div>
-                  )}
-                  <div className="absolute top-4 right-4 bg-primary-600 text-white text-sm font-medium px-2 py-1 rounded">
-                    {course.isFree ? 'Zdarma' : `${course.price} Kč`}
                   </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
-                  <p className="text-neutral-700 mb-4">
-                    {course.description.length > 200 
-                      ? `${course.description.substring(0, 200)}...` 
-                      : course.description
-                    }
-                  </p>
-                  <Link 
-                    href={`/kurzy/${course.slug || course.id}`} 
-                    className="btn-outline inline-flex items-center"
-                  >
-                    Zobrazit detail <FiArrowRight className="ml-2" />
-                  </Link>
-                </div>
-              </div>
               ))}
             </div>
-          ) : (
-            <div className="bg-neutral-50 p-8 rounded-lg text-center">
-              <h3 className="text-xl font-medium mb-2">{user ? 'Žádné další kurzy k dispozici' : 'Pro zobrazení kurzů se přihlaste'}</h3>
-              <p className="text-neutral-600 mb-4">
-                {user ? 'Všechny dostupné kurzy již máte ve své knihovně.' : 'Pro přístup k nabídce kurzů se prosím přihlaste do svého účtu.'}
-              </p>
-              <Link href={user ? '/kurzy' : '/auth/login'} className="btn-primary">
-                {user ? 'Zpět na moje kurzy' : 'Přihlásit se'}
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
     </MainLayout>
   );
 }

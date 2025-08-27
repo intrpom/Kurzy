@@ -233,6 +233,7 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: Butto
   return (
     <Link 
       href={isDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}
+      prefetch={false}
       className="btn-primary inline-flex items-center"
     >
       {isDetailPage ? 'Získat kurz (je zdarma)' : 'Detail kurzu'} <FiArrowRight className="ml-2" />

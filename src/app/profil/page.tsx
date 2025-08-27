@@ -7,7 +7,7 @@ import MainLayout from '@/app/MainLayout';
 import { FiUser, FiMail, FiShield, FiTrash2, FiAlertTriangle, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 
 export default function ProfilePage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, isInitialized, logout } = useAuth();
   const router = useRouter();
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -21,7 +21,8 @@ export default function ProfilePage() {
   const [updateSuccess, setUpdateSuccess] = useState(false);
 
   // Pokud není uživatel přihlášen, přesměruj na login
-  if (!loading && !user) {
+  // Čekáme na inicializaci GlobalAuthState před přesměrováním
+  if (isInitialized && !user) {
     router.push('/auth/login');
     return null;
   }

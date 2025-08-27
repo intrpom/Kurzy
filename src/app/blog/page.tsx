@@ -2,30 +2,26 @@ import Link from 'next/link';
 import Image from 'next/image';
 import MainLayout from '@/app/MainLayout';
 import { FiPlay, FiCalendar, FiClock, FiEye } from 'react-icons/fi';
+import prisma from '@/lib/db';
 
+// Next.js caching - revalidace každých 5 minut
+export const revalidate = 300;
 
-
-// Funkce pro získání blog postů
+// Optimalizovaná funkce pro získání blog postů - přímé databázové volání
 async function getBlogPosts() {
   try {
-    // Použijeme plnou URL i na serveru pro Next.js Server Components
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    
-    const response = await fetch(`${baseUrl}/api/blog`, {
-      next: { revalidate: 300 }, // Cache na 5 minut
-      headers: {
-        'User-Agent': 'kurzy-internal-fetch'
+    const posts = await prisma.blogPost.findMany({
+      where: {
+        isPublished: true
+      },
+      orderBy: {
+        publishedAt: 'desc'
       }
     });
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch blog posts: ${response.status}`);
-    }
-    
-    return await response.json();
+    return posts;
   } catch (error) {
-    console.error('API není dostupné, vrácím prázdný seznam:', error);
+    console.error('Chyba při načítání blog postů z databáze:', error);
     // Fallback na prázdný seznam místo crashe
     return [];
   }

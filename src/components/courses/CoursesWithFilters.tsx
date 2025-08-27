@@ -20,34 +20,17 @@ interface Course {
 
 interface CoursesWithFiltersProps {
   courses: Course[];
+  userCourseAccess: Record<string, boolean>;
 }
 
 type FilterType = 'all' | 'free' | 'paid' | 'mindfulness' | 'personal-development';
 
-export default function CoursesWithFilters({ courses }: CoursesWithFiltersProps) {
+export default function CoursesWithFilters({ courses, userCourseAccess }: CoursesWithFiltersProps) {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [courseAccess, setCourseAccess] = useState<Record<string, boolean>>({});
-  const [loadingAccess, setLoadingAccess] = useState(false); // Start with false to show buttons immediately
-
-  // Batch načtení přístupů ke kurzům - spouštět okamžitě po mount
-  useEffect(() => {
-    const fetchAllCourseAccess = async () => {
-      try {
-        const response = await fetch('/api/user/courses/batch');
-        const data = await response.json();
-        setCourseAccess(data.courseAccess || {});
-      } catch (error) {
-        console.error('Chyba při načítání batch přístupů:', error);
-        setCourseAccess({});
-      } finally {
-        setLoadingAccess(false);
-      }
-    };
-
-    // Okamžitě spustit bez čekání na user context
-    fetchAllCourseAccess();
-  }, []); // Prázdný dependency array = spustit jen jednou při mount
+  
+  // Žádné API volání! Data jsou předána z Server komponenty
+  console.log('📦 Přístup ke kurzům předán ze serveru:', Object.keys(userCourseAccess).length, 'kurzů');
 
   // Filtrování kurzů podle aktivního filtru
   const filteredCourses = useMemo(() => {
@@ -165,8 +148,8 @@ export default function CoursesWithFilters({ courses }: CoursesWithFiltersProps)
               key={course.id} 
               course={course} 
               priority={index < 6}
-              hasAccess={courseAccess[course.id] || false}
-              loadingAccess={loadingAccess}
+              hasAccess={userCourseAccess[course.id] || false}
+              loadingAccess={false}
             />
           ))}
         </div>

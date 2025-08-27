@@ -5,30 +5,37 @@ import BunnyVideoPlayer from '@/components/BunnyVideoPlayer';
 import { BlogPost } from '@/types/blog';
 import { FiPlay } from 'react-icons/fi';
 import ProtectedVideoPlayer from '@/components/ProtectedVideoPlayer';
+import prisma from '@/lib/db';
 
+// Next.js caching - revalidace každých 5 minut
+export const revalidate = 300;
 
-
-// Zjednodušená funkce pro rychlejší načítání
+// Optimalizovaná funkce - přímé databázové volání
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    
-    const response = await fetch(`${baseUrl}/api/blog/${slug}`, {
-      next: { revalidate: 300 }, // Cache na 5 minut (odstraňuji cache: force-cache)
-      headers: {
-        'User-Agent': 'kurzy-internal-fetch'
+    const post = await prisma.blogPost.findFirst({
+      where: {
+        slug: slug,
+        isPublished: true
       }
     });
     
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      throw new Error('Nepodařilo se načíst blog post');
-    }
+    // Konverze Prisma typu na BlogPost interface
+    if (!post) return null;
     
-    return response.json();
+    return {
+      ...post,
+      subtitle: post.subtitle ?? undefined,
+      content: post.content ?? undefined,
+      videoUrl: post.videoUrl ?? undefined,
+      videoLibraryId: post.videoLibraryId ?? undefined,
+      thumbnailUrl: post.thumbnailUrl ?? undefined,
+      publishedAt: post.publishedAt.toISOString(),
+      createdAt: post.createdAt.toISOString(),
+      updatedAt: post.updatedAt.toISOString()
+    } as BlogPost;
   } catch (error) {
-    console.error('Chyba při načítání blog postu:', error);
+    console.error('Chyba při načítání blog postu z databáze:', error);
     return null;
   }
 }

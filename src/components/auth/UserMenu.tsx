@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FiUser, FiLogOut, FiChevronDown } from 'react-icons/fi';
 
 const UserMenu = () => {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, isInitialized, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => {
@@ -18,18 +18,20 @@ const UserMenu = () => {
     setIsOpen(false);
   };
 
-  if (loading) {
+  // Pokud není inicializováno, optimisticky zobrazíme login (rychlejší UX)
+  if (!isInitialized || loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-neutral-500">
+      <Link href="/auth/login" prefetch={false} className="flex items-center gap-2 text-sm hover:text-primary-600">
         <FiUser className="text-lg" />
-        <span>Načítání...</span>
-      </div>
+        <span>Přihlásit se</span>
+      </Link>
     );
   }
 
+  // Po inicializaci - pokud není uživatel, zobrazíme přihlášení
   if (!user) {
     return (
-      <Link href="/auth/login" className="flex items-center gap-2 text-sm hover:text-primary-600">
+      <Link href="/auth/login" prefetch={false} className="flex items-center gap-2 text-sm hover:text-primary-600">
         <FiUser className="text-lg" />
         <span>Přihlásit se</span>
       </Link>
@@ -56,6 +58,7 @@ const UserMenu = () => {
           
           <Link 
             href="/profil" 
+            prefetch={false}
             className="block px-4 py-2 text-sm hover:bg-neutral-50"
             onClick={() => setIsOpen(false)}
           >
@@ -64,6 +67,7 @@ const UserMenu = () => {
           
           <Link 
             href="/moje-kurzy" 
+            prefetch={false}
             className="block px-4 py-2 text-sm hover:bg-neutral-50"
             onClick={() => setIsOpen(false)}
           >
@@ -73,6 +77,7 @@ const UserMenu = () => {
           {user.role === 'admin' && (
             <Link 
               href="/admin" 
+              prefetch={false}
               className="block px-4 py-2 text-sm hover:bg-neutral-50"
               onClick={() => setIsOpen(false)}
             >

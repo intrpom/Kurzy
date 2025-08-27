@@ -3,8 +3,7 @@ import CourseImage from '@/components/CourseImage';
 import Link from 'next/link';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import prisma from '@/lib/db';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import MainLayout from '@/app/MainLayout';
 
 // Definice rozhraní pro kurz
 interface FeaturedCourse {
@@ -47,9 +46,7 @@ export default async function Home() {
   // Načtení doporučených kurzů
   const featuredCourses = await getFeaturedCourses();
   return (
-    <>
-      <Navigation />
-      <main className="flex-grow">
+    <MainLayout>
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-neutral-50 to-white py-16 md:py-24">
         <div className="container-custom">
@@ -63,10 +60,10 @@ export default async function Home() {
                 osobnost a potenciál. Profesionální kurzy s lidským přístupem.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/kurzy" className="btn-primary text-center">
+                <Link href="/kurzy" prefetch={false} className="btn-primary text-center">
                   Prozkoumat kurzy
                 </Link>
-                <Link href="/o-mne" className="btn-outline text-center">
+                <Link href="/o-mne" prefetch={false} className="btn-outline text-center">
                   Více o mně
                 </Link>
               </div>
@@ -124,7 +121,7 @@ export default async function Home() {
                           ? `${course.description.substring(0, 120)}...` 
                           : course.description}
                       </p>
-                      <Link href={`/kurzy/${course.slug}`} className="btn-primary inline-flex items-center">
+                      <Link href={`/kurzy/${course.slug}`} prefetch={false} className="btn-primary inline-flex items-center">
                         {course.price === 0 ? 'Získat kurz' : 'Koupit kurz'} <FiArrowRight className="ml-2" />
                       </Link>
                     </div>
@@ -140,7 +137,7 @@ export default async function Home() {
           </div>
           
           <div className="text-center mt-12">
-            <Link href="/kurzy" className="btn-outline inline-flex items-center">
+            <Link href="/kurzy" prefetch={false} className="btn-outline inline-flex items-center">
               Zobrazit všechny kurzy <FiArrowRight className="ml-2" />
             </Link>
           </div>
@@ -201,13 +198,11 @@ export default async function Home() {
           <p className="text-lg mb-8 max-w-2xl mx-auto">
             Prozkoumejte nabídku kurzů a vyberte si ten, který nejlépe odpovídá vašim potřebám a cílům.
           </p>
-          <Link href="/kurzy" className="btn bg-white text-primary-700 hover:bg-neutral-100 inline-flex items-center">
+          <Link href="/kurzy" prefetch={false} className="btn bg-white text-primary-700 hover:bg-neutral-100 inline-flex items-center">
             Prozkoumat kurzy <FiArrowRight className="ml-2" />
           </Link>
         </div>
       </section>
-      </main>
-      <Footer />
-    </>
+    </MainLayout>
   );
 }
