@@ -27,13 +27,14 @@ export function LoadingButton() {
 /**
  * Tlačítko pro zahájení kurzu (uživatel má přístup)
  */
-export function StartCourseButton({ onClick }: { onClick: () => void }) {
+export function StartCourseButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
   return (
     <button 
       onClick={onClick}
-      className="btn-primary inline-flex items-center"
+      disabled={disabled}
+      className={`btn-primary inline-flex items-center ${disabled ? 'opacity-75 cursor-wait' : ''}`}
     >
-      Zahájit kurz <FiArrowRight className="ml-2" />
+      {disabled ? 'Spouštění...' : 'Zahájit kurz'} <FiArrowRight className="ml-2" />
     </button>
   );
 }
@@ -172,14 +173,7 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: Butto
   const isDetailPage = typeof window !== 'undefined' && 
     (window.location.pathname === `/kurzy/${slug}` || window.location.pathname.startsWith(`/kurzy/${slug}/`));
   
-  // DEBUG: Log pro kontrolu detekce
-  console.log('🔍 GuestButton Debug:', {
-    slug,
-    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
-    expectedPath: `/kurzy/${slug}`,
-    isDetailPage,
-    price
-  });
+  // Detekce prostředí pro správné chování tlačítek
   
   // Pro placené kurzy spustíme Stripe checkout
   const handlePaidCourse = async () => {

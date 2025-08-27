@@ -1,6 +1,8 @@
 'use client';
 
 import { FiLock, FiUser } from 'react-icons/fi';
+import { useAuth } from '@/contexts/AuthContext';
+import BunnyVideoPlayer from '@/components/BunnyVideoPlayer';
 
 interface ProtectedVideoPlayerProps {
   videoId: string;
@@ -15,9 +17,34 @@ export default function ProtectedVideoPlayer({
   title, 
   className = "w-full aspect-video" 
 }: ProtectedVideoPlayerProps) {
-  // ProtectedVideoPlayer optimalizován pro okamžité zobrazení
+  const { user, loading } = useAuth();
 
-  // Vždy zobrazíme protected view - nejjednodušší možná implementace
+  // Pokud načítáme autentizaci, zobrazíme loading state
+  if (loading) {
+    return (
+      <div className={`${className} bg-neutral-100 flex items-center justify-center`}>
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-neutral-500">Načítám...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Pokud je uživatel přihlášený, zobrazíme video
+  if (user) {
+    return (
+      <BunnyVideoPlayer
+        videoId={videoId}
+        libraryId={libraryId}
+        title={title}
+        className={className}
+        autoplay={false}
+      />
+    );
+  }
+
+  // Pokud není přihlášený, zobrazíme přihlašovací obrazovku
   return (
       <div className={`${className} bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center relative overflow-hidden`}>
         {/* Background overlay */}

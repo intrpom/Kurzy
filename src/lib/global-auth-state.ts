@@ -26,8 +26,6 @@ class GlobalAuthState {
   async initialize(): Promise<void> {
     if (this.state.isInitialized) return;
 
-    console.log('🔍 GlobalAuthState: Inicializace stavu přihlášení...');
-
     try {
       // 1. Zkontroluj localStorage verifikaci
       const isVerified = this.getStoredVerification();
@@ -38,7 +36,6 @@ class GlobalAuthState {
       if (isVerified && hasAuthCookie) {
         // ✅ OVĚŘENÝ + platné cookies = použij localStorage data
         const storedUser = this.getStoredUser();
-        console.log('✅ Používám uložený stav uživatele (BEZ API volání)');
         this.setState({
           isAuthenticated: true,
           isInitialized: true,
@@ -46,7 +43,6 @@ class GlobalAuthState {
         });
       } else if (isVerified && !hasAuthCookie) {
         // ❌ OVĚŘENÝ ale cookies vypršely = smaž localStorage a odhlás
-        console.log('❌ Session cookies vypršely, mažu localStorage');
         this.clearStoredAuth();
         this.setState({
           isAuthenticated: false,
@@ -55,12 +51,8 @@ class GlobalAuthState {
         });
       } else if (!isVerified && hasAuthCookie) {
         // 🔍 Cookies jsou, ale localStorage není = možná nový prohlížeč
-        console.log('🔍 DEBUG: isVerified =', isVerified, 'hasAuthCookie =', hasAuthCookie);
-        console.log('🔍 DEBUG: cookies =', typeof document !== 'undefined' ? document.cookie : 'server-side');
-        
         // KONZERVATIVNÍ přístup: Pouze pokud jsou cookies opravdu validní
         if (hasAuthCookie && document.cookie.includes('session=')) {
-          console.log('🔍 Mám session cookie, ověřuji API...');
           const user = await this.verifyAuthWithAPI();
           if (user) {
             this.storeUserAuth(user);
@@ -72,7 +64,6 @@ class GlobalAuthState {
           });
         } else {
           // Fallback - považovat za nepřihlášeného
-          console.log('🔍 Žádná session cookie, považuji za nepřihlášeného');
           this.setState({
             isAuthenticated: false,
             isInitialized: true,
@@ -81,7 +72,6 @@ class GlobalAuthState {
         }
       } else {
         // ❌ Žádné indikátory = nepřihlášený
-        console.log('❌ Žádné indikátory přihlášení');
         this.setState({
           isAuthenticated: false,
           isInitialized: true,
@@ -137,7 +127,6 @@ class GlobalAuthState {
     try {
       localStorage.setItem('user_verified', 'true');
       localStorage.setItem('user_data', JSON.stringify(user));
-      console.log('💾 Uživatelský stav uložen do localStorage');
     } catch (error) {
       console.error('Chyba při ukládání do localStorage:', error);
     }
@@ -150,7 +139,6 @@ class GlobalAuthState {
     if (typeof localStorage === 'undefined') return;
     localStorage.removeItem('user_verified');
     localStorage.removeItem('user_data');
-    console.log('🗑️ Uživatelský stav smazán z localStorage');
   }
 
 
@@ -185,7 +173,6 @@ class GlobalAuthState {
    */
   private setState(newState: Partial<AuthState>): void {
     this.state = { ...this.state, ...newState };
-    console.log('🔄 GlobalAuthState: Stav aktualizován:', this.state);
     
     // Notify všechny listeners
     this.listeners.forEach(listener => listener(this.state));

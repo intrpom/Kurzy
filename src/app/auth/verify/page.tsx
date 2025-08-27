@@ -16,27 +16,25 @@ export default function VerifyPage({
           <div className="bg-white p-8 rounded-lg shadow-md">
             <h1 className="text-3xl font-serif font-bold mb-6 text-center">Ověření přihlášení</h1>
             
-            <Suspense fallback={<div className="text-center py-4">Načítání...</div>}>
-              {token && email ? (
-                <VerifyAuth 
-                  token={token} 
-                  email={email} 
-                  courseId={courseId} 
-                  slug={slug}
-                  price={price}
-                  action={action}
-                />
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-red-600">Chybí potřebné parametry pro ověření.</p>
-                  <p className="mt-4">
-                    <a href="/auth/login" className="text-primary-600 hover:text-primary-800 underline">
-                      Zpět na přihlášení
-                    </a>
-                  </p>
-                </div>
-              )}
-            </Suspense>
+            {token && email ? (
+              <VerifyAuth 
+                token={token} 
+                email={email} 
+                courseId={courseId} 
+                slug={slug}
+                price={price}
+                action={action}
+              />
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-red-600">Chybí potřebné parametry pro ověření.</p>
+                <p className="mt-4">
+                  <a href="/auth/login" className="text-primary-600 hover:text-primary-800 underline">
+                    Zpět na přihlášení
+                  </a>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>

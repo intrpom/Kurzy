@@ -32,21 +32,8 @@ export default function CourseDetailClient({ courseId, slug, price, children }: 
         setIsProcessing(true);
         setError(null);
         
-        // Nejprve zkontrolujeme, zda uživatel již má přístup ke kurzu
-        const checkResponse = await fetch(`/api/user/courses?courseId=${courseId}`);
-        
-        if (!checkResponse.ok) {
-          throw new Error(`Chyba při kontrole přístupu: ${checkResponse.status}`);
-        }
-        
-        const checkData = await checkResponse.json();
-        
-        // Pokud uživatel již má přístup, přesměrujeme ho na stránku kurzu
-        if (checkData.hasAccess) {
-          // Použijeme window.location místo router.replace pro úplné přesměrování
-          window.location.href = `/moje-kurzy/${slug}`;
-          return;
-        }
+        // Server-side už kontroluje přístup - pokud je uživatel na této stránce, nemá přístup
+        // Pokud má přístup, server ho automaticky přesměruje na /moje-kurzy/[slug]
         
         // Pokud uživatel nemá přístup, přidáme mu ho
         const response = await fetch('/api/user/courses/add', {

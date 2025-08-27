@@ -4,6 +4,8 @@
  * API funkce pro práci s kurzy uživatele
  */
 
+import { courseAccessCache } from '@/lib/course-access-cache';
+
 /**
  * Kontroluje, zda má uživatel přístup ke konkrétnímu kurzu
  * @param courseId ID kurzu
@@ -11,53 +13,8 @@
  */
 export async function checkCourseAccess(courseId: string): Promise<{ hasAccess: boolean }> {
   try {
-    
-    // Použijeme XMLHttpRequest pro lepší podporu cookies
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.withCredentials = true; // Důležité pro cross-origin požadavky s cookies
-      
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const responseData = JSON.parse(xhr.responseText);
-              
-              // Kontrola, zda má uživatel přístup ke kurzu
-              let userHasAccess = false;
-              
-              // Kontrola, zda API vrátilo informaci o přístupu
-              if (responseData.hasAccess === true) {
-                userHasAccess = true;
-              }
-              
-              // Kontrola, zda kurz existuje v seznamu kurzů uživatele
-              if (responseData.courses && Array.isArray(responseData.courses)) {
-                const userCourse = responseData.courses.find((course: any) => course.id === courseId);
-                if (userCourse) {
-                  userHasAccess = true;
-                }
-              }
-              
-              resolve({ hasAccess: userHasAccess });
-            } catch (error) {
-              console.error('Chyba při parsování odpovědi:', error);
-              reject(new Error('Chyba při parsování odpovědi'));
-            }
-          } else {
-            console.error('HTTP chyba při kontrole přístupu:', xhr.status);
-            reject(new Error(`HTTP chyba: ${xhr.status}`));
-          }
-        }
-      };
-      
-      xhr.open('GET', `/api/user/courses?courseId=${courseId}`, true);
-      xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      xhr.setRequestHeader('Pragma', 'no-cache');
-      xhr.setRequestHeader('Expires', '0');
-      xhr.send();
-    });
+    const result = await courseAccessCache.checkAccess(courseId);
+    return { hasAccess: result.hasAccess };
   } catch (error) {
     console.error('Chyba při kontrole přístupu ke kurzu:', error);
     throw error;
@@ -83,6 +40,10 @@ export async function addFreeCourseToUser(courseId: string): Promise<{ success: 
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const responseData = JSON.parse(xhr.responseText);
+              
+              // Vymaž cache po úspěšném přidání kurzu
+              courseAccessCache.clearCache();
+              
               resolve(responseData);
             } catch (error) {
               console.error('Chyba při parsování odpovědi:', error);
@@ -115,25 +76,7 @@ export async function addFreeCourseToUser(courseId: string): Promise<{ success: 
  * @param courseId ID kurzu
  */
 export function redirectToCourse(slug: string, courseId: string): void {
-  // Použijeme form submit pro přesměrování, což zajistí přenos cookies
-  const form = document.createElement('form');
-  form.method = 'GET';
-  form.action = `/moje-kurzy/${slug}`;
-  
-  // Přidáme courseId jako parametr pro správnou identifikaci kurzu
-  const courseIdInput = document.createElement('input');
-  courseIdInput.type = 'hidden';
-  courseIdInput.name = 'id';
-  courseIdInput.value = courseId;
-  form.appendChild(courseIdInput);
-  
-  // Přidáme timestamp jako parametr pro zabránění cachování
-  const timestampInput = document.createElement('input');
-  timestampInput.type = 'hidden';
-  timestampInput.name = '_';
-  timestampInput.value = Date.now().toString();
-  form.appendChild(timestampInput);
-  
-  document.body.appendChild(form);
-  form.submit();
+  // Použijeme window.location.href pro jednoduché přesměrování
+  // Server-side načítání už nepotřebuje URL parametry
+  window.location.href = `/moje-kurzy/${slug}`;
 }

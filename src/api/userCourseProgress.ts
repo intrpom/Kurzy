@@ -5,6 +5,7 @@
  */
 
 import { Course } from '@/types/course';
+import { courseAccessCache } from '@/lib/course-access-cache';
 
 /**
  * Načte kurz podle slugu a ověří přístup uživatele
@@ -32,7 +33,6 @@ export async function loadUserCourse(slug: string): Promise<Course> {
         const courseData = await response.json();
         if (courseData && courseData.id) {
           courseId = courseData.id;
-          console.log('Získáno ID kurzu ze slugu:', { slug, courseId });
         }
       }
     } catch (error) {
@@ -42,101 +42,38 @@ export async function loadUserCourse(slug: string): Promise<Course> {
   }
   
   if (!courseId) {
-    console.error('Nepodařilo se získat ID kurzu');
     throw new Error('Kurz nebyl nalezen');
   }
+
+  // Použij centralizovanou cache pro kontrolu přístupu
+  const accessResult = await courseAccessCache.checkAccess(courseId);
   
-  console.log('Kontroluji přístup ke kurzu:', { slug, courseId });
-  
-  // Použijeme XMLHttpRequest pro lepší podporu cookies
-  const checkAccessPromise = new Promise<{hasAccess: boolean}>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.withCredentials = true;
-    
-    // Přidáme timestamp pro zabránění cachování
-    const timestamp = Date.now();
-    xhr.open('GET', `/api/user/courses?courseId=${courseId}&_=${timestamp}`, true);
-    
-    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    xhr.setRequestHeader('Pragma', 'no-cache');
-    xhr.setRequestHeader('Expires', '0');
-    
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4) {
-        console.log('Kontrola přístupu ke kurzu - odpověď:', { status: xhr.status, response: xhr.responseText });
-        
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const responseData = JSON.parse(xhr.responseText);
-            resolve(responseData);
-          } catch (error) {
-            console.error('Chyba při parsování odpovědi:', error);
-            reject(new Error('Chyba při parsování odpovědi'));
-          }
-        } else {
-          console.error('HTTP chyba při kontrole přístupu:', xhr.status);
-          reject(new Error(`HTTP chyba: ${xhr.status}`));
-        }
-      }
-    };
-    
-    xhr.send();
-  });
-  
-  let accessData;
-  try {
-    accessData = await checkAccessPromise;
-    
-    if (!accessData.hasAccess) {
-      console.error('Uživatel nemá přístup ke kurzu');
-      throw new Error('Nemáte přístup k tomuto kurzu');
-    }
-  } catch (error) {
-    console.error('Chyba při kontrole přístupu ke kurzu:', error);
-    throw error;
+  // Kontrola přístupu
+  if (!accessResult.hasAccess) {
+    throw new Error('Nemáte přístup k tomuto kurzu');
   }
   
   // Načtení detailu kurzu
-  console.log('Načítám detail kurzu:', { courseId });
-  
-  // Použijeme XMLHttpRequest pro lepší podporu cookies
-  const loadCoursePromise = new Promise<Course>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.withCredentials = true;
-    
-    // Přidáme timestamp pro zabránění cachování
-    const timestamp = Date.now();
-    xhr.open('GET', `/api/courses/${courseId}?_=${timestamp}`, true);
-    
-    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    xhr.setRequestHeader('Pragma', 'no-cache');
-    xhr.setRequestHeader('Expires', '0');
-    
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4) {
-        console.log('Načtení kurzu - odpověď:', { status: xhr.status });
-        
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const courseData = JSON.parse(xhr.responseText);
-            resolve(courseData);
-          } catch (error) {
-            console.error('Chyba při parsování odpovědi:', error);
-            reject(new Error('Chyba při parsování odpovědi'));
-          }
-        } else {
-          console.error('HTTP chyba při načítání kurzu:', xhr.status);
-          reject(new Error(`HTTP chyba: ${xhr.status}`));
-        }
-      }
-    };
-    
-    xhr.send();
+  const loadCoursePromise = fetch(`/api/courses/${courseId}?_=${Date.now()}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  }).then(async (response) => {
+    if (response.ok) {
+      return await response.json();
+    } else {
+      const errorText = await response.text();
+      console.error('HTTP chyba při načítání kurzu:', response.status, errorText);
+      throw new Error(`HTTP chyba: ${response.status}`);
+    }
   });
   
   try {
     const courseData = await loadCoursePromise;
-    console.log('Kurz úspěšně načten:', { courseId, title: courseData.title });
     
     // Přidáme informace o postupu
     return calculateCourseProgress(courseData);

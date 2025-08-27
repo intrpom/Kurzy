@@ -35,23 +35,24 @@ export default function CourseAccessButton({
   const router = useRouter();
   
   const [addingCourse, setAddingCourse] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  
+  // Component mounted
   
   // Použít poskytnuté batch data
   const hasAccess = user ? providedHasAccess : false;
   
-  // DEBUG: Log pro CourseAccessButton
-  console.log('🎯 CourseAccessButton Debug:', {
-    slug,
-    price,
-    user: !!user,
-    loading,
-    hasAccess,
-    providedHasAccess,
-    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR'
-  });
+  // DEBUG removed - causing spam
 
   // Funkce pro přímý přístup ke kurzu
   const handleAccessCourse = async () => {
+    // Zabránění double-click / double processing
+    if (isProcessing) {
+      return;
+    }
+    
+    setIsProcessing(true);
+    
     try {
       
       // Pokud je kurz zdarma a uživatel je přihlášen a nemá přístup
@@ -69,13 +70,8 @@ export default function CourseAccessButton({
           }
           
           
-          // Kurz byl přidán úspěšně - reloadneme stránku pro refresh batch dat
-          window.location.reload();
-          
-          // Malé zpoždění a pak přesměrování
-          setTimeout(() => {
-            redirectToCourse(slug, courseId);
-          }, 500);
+          // Kurz byl přidán úspěšně - přímo přesměrujeme (cache už je invalidována v addFreeCourseToUser)
+          redirectToCourse(slug, courseId);
         } catch (error) {
           console.error('Chyba při přidávání kurzu:', error);
           alert('Nepodařilo se přidat kurz. Zkuste to prosím později.');
@@ -92,6 +88,9 @@ export default function CourseAccessButton({
     } catch (error) {
       console.error('Chyba při získávání přístupu ke kurzu:', error);
       alert('Nepodařilo se získat přístup ke kurzu. Zkuste to prosím později.');
+    } finally {
+      // Reset processing flag po dokončení (s malým delay pro UX)
+      setTimeout(() => setIsProcessing(false), 1000);
     }
   };
 
@@ -102,21 +101,21 @@ export default function CourseAccessButton({
     return <LoadingButton />;
   }
   
-  // Načítání autentizace - ale jen pokud už víme, že user existuje
-  if (loading && user) {
+  // Načítání autentizace - čekáme na dokončení ověření
+  if (loading) {
     return <LoadingButton />;
   }
 
   // Uživatel má přístup ke kurzu
   if (user && hasAccess) {
-    return <StartCourseButton onClick={handleAccessCourse} />;
+    return <StartCourseButton onClick={handleAccessCourse} disabled={isProcessing} />;
   }
 
   // Uživatel je přihlášen, ale nemá přístup ke kurzu
   if (user) {
     if (price === 0) {
       // Pro kurzy zdarma
-      return <GetFreeCourseButton onClick={handleAccessCourse} disabled={addingCourse} />;
+      return <GetFreeCourseButton onClick={handleAccessCourse} disabled={addingCourse || isProcessing} />;
     } else {
       // Pro placené kurzy - VŽDY BuyCourseButton pro přihlášené uživatele
       return <BuyCourseButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} />;

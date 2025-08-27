@@ -36,6 +36,8 @@ export default function CourseCard({
 }: CourseCardProps) {
   const { user, loading } = useAuth();
   
+  // Component mounted
+  
   // Použít přijatý hasAccess nebo fallback na false pro nepřihlášené uživatele
   const hasAccess = user ? providedHasAccess : false;
   const checkingAccess = loadingAccess;

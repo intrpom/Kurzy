@@ -6,7 +6,6 @@ import { cookies } from 'next/headers';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  console.log('API: /api/auth/verify - začátek zpracování požadavku');
   try {
     const searchParams = request.nextUrl.searchParams;
     const token = searchParams.get('token');
@@ -16,13 +15,10 @@ export async function GET(request: NextRequest) {
     // Kontrola, zda již byla nastavena session cookie
     const sessionCookie = cookies().get('session');
     if (sessionCookie) {
-      console.log('API: Session cookie již existuje, pravděpodobně duplicitní požadavek');
-      
       try {
         // Zkusíme dekódovat session cookie a vrátit data uživatele
         const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
         if (sessionData && sessionData.id && sessionData.email) {
-          console.log('API: Vracím data z existující session cookie');
           return NextResponse.json(
             { 
               success: true, 
@@ -45,15 +41,11 @@ export async function GET(request: NextRequest) {
           );
         }
       } catch (e) {
-        console.log('API: Chyba při dekódování session cookie:', e);
         // Pokračujeme v normálním zpracování
       }
     }
-    
-    console.log('API: Parametry požadavku:', { token: token?.substring(0, 10) + '...', email });
 
     if (!token || !email) {
-      console.log('API: Chybí token nebo email');
       return NextResponse.json(
         { error: 'Chybějící token nebo e-mail' },
         { status: 400 }
@@ -71,8 +63,6 @@ export async function GET(request: NextRequest) {
       role: string;
     };
 
-    console.log('API: Hledám token v databázi');
-    
     // Najít token a uživatele v databázi pomocí raw SQL
     const result = await prisma.$queryRaw<AuthTokenWithUser[]>`
       SELECT t.id, t.token, t.expires, u.id as "userId", u.email, u.name, u.role
@@ -81,28 +71,21 @@ export async function GET(request: NextRequest) {
       WHERE t.token = ${token}
       LIMIT 1
     `;
-    
-    console.log('API: Výsledek dotazu:', { found: result.length > 0 });
 
     const authToken = result[0];
 
     if (!authToken) {
-      console.log('API: Token nebyl nalezen v databázi');
       return NextResponse.json(
         { error: 'Neplatný token' },
         { status: 400 }
       );
     }
-    
-    console.log('API: Token nalezen, uživatel:', { email: authToken.email });
 
     // Zkontrolovat, zda token není expirovaný
     const now = new Date();
     const expires = new Date(authToken.expires);
-    console.log('API: Kontrola expirace tokenu:', { now, expires, isExpired: now > expires });
     
     if (now > expires) {
-      console.log('API: Token vypršel');
       // Smazat expirovaný token
       await prisma.$executeRaw`DELETE FROM "AuthToken" WHERE id = ${authToken.id}`;
       
@@ -113,9 +96,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Zkontrolovat, zda e-mail odpovídá uživateli
-    console.log('API: Kontrola emailu:', { tokenEmail: authToken.email, requestEmail: email });
     if (authToken.email !== email) {
-      console.log('API: Email neodpovídá tokenu');
       return NextResponse.json(
         { error: 'Neplatný e-mail' },
         { status: 400 }
@@ -123,12 +104,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Smazat použitý token
-    console.log('API: Mažu použitý token');
     await prisma.$executeRaw`DELETE FROM "AuthToken" WHERE id = ${authToken.id}`;
-    console.log('API: Token smazán');
 
     // Vytvořit session cookie
-    console.log('API: Vytvářím session cookie');
     const sessionData = {
       id: authToken.userId,
       email: authToken.email,
@@ -137,43 +115,8 @@ export async function GET(request: NextRequest) {
       exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 // 7 dní
     };
     
-    console.log('Vytvářím session cookie s daty:', sessionData);
-    
-    // Získáme doménu z referer nebo host headeru
-    let domain: string | undefined = undefined;
-    const referer = request.headers.get('referer');
-    const host = request.headers.get('host');
-    const origin = request.headers.get('origin');
-    
-    console.log('Hlavičky požadavku:', { 
-      referer, 
-      host, 
-      origin,
-      'user-agent': request.headers.get('user-agent')
-    });
-    
-    if (referer) {
-      try {
-        const url = new URL(referer);
-        domain = url.hostname;
-        console.log('Získána doména z referer:', domain);
-      } catch (error) {
-        console.error('Chyba při parsování referer URL:', error);
-      }
-    } else if (host) {
-      domain = host.split(':')[0]; // Odstraníme port, pokud existuje
-      console.log('Získána doména z host headeru:', domain);
-    }
-    
-    // Kontrola, zda jsme v produkčním prostředí (Vercel)
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isVercel = process.env.VERCEL === '1';
-    
-    console.log('Prostředí:', { isProduction, isVercel });
-    
     // Zakódujeme data do Base64 pro lepší kompatibilitu
     const sessionValue = Buffer.from(JSON.stringify(sessionData)).toString('base64');
-    console.log('Zakódovaná session data (base64):', sessionValue);
     
     // Nastavíme cookie s parametry vhodnými pro produkční prostředí
     cookies().set({
@@ -188,22 +131,13 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 dní
     });
     
-    console.log('Nastavená hlavní session cookie s parametry:', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      path: '/',
-      domain: undefined,
-      maxAge: 60 * 60 * 24 * 7
-    });
-    
     // Nastavíme také záložní cookie pro případ, že by httpOnly nefungovalo
     cookies().set({
       name: 'session_check',
       value: 'true',
       httpOnly: false,
       secure: true,
-      sameSite: 'lax', // Změna z 'none' na 'lax'
+      sameSite: 'lax',
       path: '/',
       domain: undefined,
       maxAge: 60 * 60 * 24 * 7, // 7 dní
@@ -215,16 +149,11 @@ export async function GET(request: NextRequest) {
       value: authToken.userId,
       httpOnly: false,
       secure: true,
-      sameSite: 'lax', // Změna z 'none' na 'lax'
+      sameSite: 'lax',
       path: '/',
       domain: undefined,
       maxAge: 60 * 60 * 24 * 7, // 7 dní
     });
-    
-    // Zkontrolujeme, zda byla cookie nastavena
-    const setCookie = cookies().get('session');
-    console.log('Cookie byla nastavena:', setCookie ? 'ano' : 'ne');
-    console.log('API: Session cookie nastavena');
 
     // Připravit data pro odpověď
     const userData = {
@@ -234,7 +163,6 @@ export async function GET(request: NextRequest) {
       role: authToken.role,
     };
 
-    console.log('API: Vracím úspěšnou odpověď s uživatelskými daty');
     return NextResponse.json(
       { 
         success: true, 

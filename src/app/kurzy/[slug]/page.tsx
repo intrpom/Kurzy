@@ -1,4 +1,5 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import CourseImage from '@/components/CourseImage';
 import MainLayout from '@/app/MainLayout';
@@ -153,11 +154,55 @@ async function getRelatedCourses(currentCourse: Course): Promise<RelatedCourse[]
   }
 }
 
+// Funkce pro kontrolu přístupu uživatele ke kurzu
+async function checkUserAccess(courseId: string): Promise<boolean> {
+  try {
+    const sessionCookie = cookies().get('session');
+    
+    if (!sessionCookie || !sessionCookie.value) {
+      return false; // Nepřihlášený uživatel nemá přístup
+    }
+    
+    let sessionData;
+    try {
+      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+    } catch (e) {
+      return false; // Neplatná session
+    }
+    
+    if (!sessionData || !sessionData.id) {
+      return false; // Neplatná session data
+    }
+    
+    const userId = sessionData.id;
+    
+    // Zkontrolovat přístup ke kurzu
+    const userCourse = await prisma.userCourse.findFirst({
+      where: {
+        userId: userId,
+        courseId: courseId
+      }
+    });
+    
+    return !!userCourse; // true pokud má přístup
+  } catch (error) {
+    console.error('Chyba při kontrole přístupu ke kurzu:', error);
+    return false;
+  }
+}
+
 export default async function CourseDetail({ params }: { params: { slug: string } }) {
   const course = await getCourseData(params.slug);
   
   if (!course) {
     notFound();
+  }
+  
+  // Server-side kontrola přístupu - pokud má uživatel přístup, přesměruj na moje-kurzy
+  const hasAccess = await checkUserAccess(course.id);
+  if (hasAccess) {
+    console.log('✅ Server-side: Uživatel má přístup ke kurzu, přesměrovávám na /moje-kurzy');
+    redirect(`/moje-kurzy/${params.slug}`);
   }
   
   const relatedCourses = await getRelatedCourses(course);

@@ -1,117 +1,145 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import MainLayout from '@/app/MainLayout';
+import { notFound, redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { Course } from '@/types/course';
-import ModuleAccordion from '@/components/courses/ModuleAccordion';
-import LessonPlayer from '@/components/courses/LessonPlayer';
-import CourseHeader from '@/components/courses/CourseHeader';
-import CourseContentManager from '@/components/courses/CourseContentManager';
-import { loadUserCourse } from '@/api/userCourseProgress';
+import { prisma } from '@/lib/prisma';
+import CoursePageClient from '@/components/courses/CoursePageClient';
 
 /**
- * Stránka kurzu pro přihlášené uživatele
- * Zobrazuje obsah kurzu, přehrávač lekcí a umožňuje navigaci mezi lekcemi
+ * Server-side stránka kurzu pro přihlášené uživatele
+ * Načítá kurz přímo z databáze a předává data client komponentě
  */
-export default function CoursePage({ params }: { params: { slug: string } }) {
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
-  // Načtení dat kurzu
-  useEffect(() => {
-    async function fetchCourse() {
-      setLoading(true);
-      try {
-        // Načteme kurz a ověříme přístup uživatele
-        const courseData = await loadUserCourse(params.slug);
-        setCourse(courseData);
-      } catch (error: any) {
-        console.error('Chyba při načítání kurzu:', error);
-        setError(error.message || 'Nepodařilo se načíst kurz');
-        
-        // Pokud nemá uživatel přístup, přesměrujeme ho na seznam kurzů
-        if (error.message === 'Nemáte přístup k tomuto kurzu') {
-          router.push('/kurzy');
-        }
-      } finally {
-        setLoading(false);
-      }
+interface CoursePageProps {
+  params: { slug: string };
+}
+
+// Načte kurz z databáze a ověří přístup uživatele
+async function getCourseBySlug(slug: string): Promise<Course | null> {
+  try {
+    // Získat session cookie
+    const sessionCookie = cookies().get('session');
+    
+    if (!sessionCookie || !sessionCookie.value) {
+      console.log('❌ Chybí session cookie');
+      return null;
     }
     
-    fetchCourse();
-  }, [params.slug, router]);
+    // Dekódovat session cookie
+    let sessionData;
+    try {
+      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+    } catch (e) {
+      console.log('❌ Neplatná session');
+      return null;
+    }
+    
+    if (!sessionData || !sessionData.id) {
+      console.log('❌ Neplatná session data');
+      return null;
+    }
+    
+    const userId = sessionData.id;
+    
+    // Najít kurz podle slugu
+    const course = await prisma.course.findUnique({
+      where: { slug },
+      include: {
+        modules: {
+          include: {
+            lessons: {
+              include: {
+                materials: true
+              },
+              orderBy: { order: 'asc' }
+            }
+          },
+          orderBy: { order: 'asc' }
+        }
+      }
+    });
+    
+    if (!course) {
+      console.log('❌ Kurz nebyl nalezen:', slug);
+      return null;
+    }
+    
+    // Zkontrolovat přístup uživatele ke kurzu
+    const userCourse = await prisma.userCourse.findFirst({
+      where: {
+        userId: userId,
+        courseId: course.id
+      }
+    });
+    
+    if (!userCourse) {
+      console.log('❌ Uživatel nemá přístup ke kurzu:', { userId, courseId: course.id });
+      return null;
+    }
+    
+    console.log('✅ Server-side: Kurz načten úspěšně bez API:', { courseId: course.id, title: course.title });
+    
+    // Transformovat data pro frontend (přidat progress informace)
+    const courseWithProgress: Course = {
+      ...course,
+      description: course.description || '',
+      imageUrl: course.imageUrl || '',
+      subtitle: course.subtitle || undefined,
+      videoLibraryId: course.videoLibraryId || undefined,
+      level: (course.level as 'beginner' | 'intermediate' | 'advanced') || undefined,
+      createdAt: course.createdAt?.toISOString(),
+      updatedAt: course.updatedAt?.toISOString(),
+      tags: course.tags || [],
+      progress: userCourse.progress,
+      completed: userCourse.completed,
+      modules: course.modules.map(module => ({
+        ...module,
+        description: module.description || undefined,
+        videoLibraryId: module.videoLibraryId || undefined,
+        completed: false, // TODO: Vypočítat podle lekcí
+        lessons: module.lessons.map(lesson => ({
+          ...lesson,
+          description: lesson.description || undefined,
+          videoUrl: lesson.videoUrl || undefined,
+          videoLibraryId: lesson.videoLibraryId || undefined,
+          completed: false, // TODO: Načíst z databáze user progress
+          materials: lesson.materials?.map(material => ({
+            type: material.type as 'pdf' | 'audio' | 'link' | 'text',
+            title: material.title,
+            url: material.url || undefined,
+            content: material.content || undefined
+          })) || []
+        }))
+      }))
+    };
+    
+    return courseWithProgress;
+    
+  } catch (error) {
+    console.error('🔥 Chyba při načítání kurzu z databáze:', error);
+    return null;
+  }
+}
+
+export default async function CoursePage({ params }: CoursePageProps) {
+  const course = await getCourseBySlug(params.slug);
   
-  // Stavy načítání a chyb
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="container-custom py-16 text-center">
-          <p>Načítání kurzu...</p>
-        </div>
-      </MainLayout>
-    );
+  // Pokud kurz nebyl nalezen nebo uživatel nemá přístup
+  if (!course) {
+    // Zkusíme zjistit, jestli kurz vůbec existuje
+    const courseExists = await prisma.course.findUnique({
+      where: { slug: params.slug },
+      select: { id: true }
+    });
+    
+    if (!courseExists) {
+      // Kurz neexistuje -> 404
+      notFound();
+    } else {
+      // Kurz existuje, ale uživatel nemá přístup -> přesměruj na kurzy
+      redirect('/kurzy');
+    }
   }
   
-  if (error || !course) {
-    return (
-      <MainLayout>
-        <div className="container-custom py-16 text-center">
-          <p className="text-red-500">{error || 'Kurz nebyl nalezen'}</p>
-          <Link href="/moje-kurzy" className="text-primary-600 hover:underline mt-4 inline-block">
-            Zpět na moje kurzy
-          </Link>
-        </div>
-      </MainLayout>
-    );
-  }
-  
-  // Vykreslení kurzu
-  return (
-    <MainLayout>
-      <CourseHeader course={course} />
-      
-      <div className="container-custom">
-        <CourseContentManager initialCourse={course}>
-          {({ course, currentModuleId, currentLessonId, handleLessonClick, handleLessonComplete }) => (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Sidebar - Course Structure */}
-              <div className="lg:col-span-1 order-2 lg:order-1">
-                <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8 max-h-[calc(100vh-120px)]">
-                  <h2 className="text-xl font-medium mb-6">Obsah kurzu</h2>
-                  
-                  <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] pr-2">
-                    {course.modules.map((module, moduleIndex) => (
-                      <ModuleAccordion
-                        key={module.id}
-                        module={module}
-                        index={moduleIndex}
-                        isActive={module.id === currentModuleId}
-                        onLessonClick={handleLessonClick}
-                        currentLessonId={currentLessonId}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Main Content - Lesson Player */}
-              <div className="lg:col-span-2 order-1 lg:order-2 lesson-player-container">
-                <LessonPlayer
-                  course={course}
-                  currentModuleId={currentModuleId}
-                  currentLessonId={currentLessonId}
-                  onLessonComplete={handleLessonComplete}
-                  onNavigateLesson={handleLessonClick}
-                />
-              </div>
-            </div>
-          )}
-        </CourseContentManager>
-      </div>
-    </MainLayout>
-  );
+  // Předat data client komponentě
+  return <CoursePageClient course={course} />;
 }

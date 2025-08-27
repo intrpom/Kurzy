@@ -1,9 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiCheck, FiX, FiLoader } from 'react-icons/fi';
 import globalAuthState from '@/lib/global-auth-state';
+
+// Globální ochrana proti duplikátním voláním
+const globalVerificationGuard = new Set<string>();
+
+// Globální Set pro sledování již zpracovaných tokenů
+const processedTokens = new Set<string>();
 
 interface VerifyAuthProps {
   token: string;
@@ -15,25 +21,87 @@ interface VerifyAuthProps {
 }
 
 const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, price, action }) => {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState<string>('Ověřujeme váš přihlašovací odkaz...');
+  // PRVNÍ KONTROLA - pokud už byl token zpracován globálně
+  if (processedTokens.has(token)) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <FiCheck className="text-green-600 text-2xl" />
+        </div>
+        <h2 className="text-2xl font-medium mb-4">Přihlášení dokončeno</h2>
+        <p className="text-neutral-700">Již ověřeno, přesměrovávám...</p>
+      </div>
+    );
+  }
+  
+  // OKAMŽITÁ kontrola - pokud už byl token ověřen, přesměruj ihned
+  const alreadyVerified = typeof window !== 'undefined' ? sessionStorage.getItem(`verified_${token}`) : null;
+  
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(alreadyVerified ? 'success' : 'loading');
+  const [message, setMessage] = useState<string>(alreadyVerified ? 'Již ověřeno, přesměrovávám...' : 'Ověřujeme váš přihlašovací odkaz...');
   const router = useRouter();
   
   // Použijeme useRef pro sledování, zda již bylo ověření provedeno
   const verificationAttempted = useRef<boolean>(false);
+  
+  // Okamžité přesměrování pokud už je ověřeno
+  if (alreadyVerified && typeof window !== 'undefined') {
+    const redirectUrl = courseId && slug ? `/kurzy/${slug}` : '/';
+    setTimeout(() => {
+      router.push(redirectUrl);
+    }, 50);
+  }
 
-  useEffect(() => {
-    // Jednoduché řešení - jen kontrola verificationAttempted
-    setStatus('loading');
-    setMessage('Ověřuji váš přihlašovací token...');
+  useLayoutEffect(() => {
+    // Kontrola základních požadavků
+    if (!token || !email) {
+      setStatus('error');
+      setMessage('Chybí token nebo e-mail pro ověření.');
+      return;
+    }
+    
+    // SILNÁ ochrana - kontrola zda už byl tento token ověřen
+    const tokenKey = `${token}_${email}`;
+    const alreadyVerified = sessionStorage.getItem(`verified_${token}`);
+    if (alreadyVerified) {
+      const redirectUrl = courseId && slug ? `/kurzy/${slug}` : '/';
+      setTimeout(() => {
+        router.push(redirectUrl);
+      }, 100);
+      return;
+    }
+    
+    // GLOBÁLNÍ ochrana - kontrola zda už token není zpracováván
+    if (globalVerificationGuard.has(tokenKey)) {
+      return;
+    }
+    
+    // Přidáme token do globální ochrany
+    globalVerificationGuard.add(tokenKey);
+    
+    // Kontrola, zda token už nebyl použit
+    const tokenUsed = localStorage.getItem(`token_used_${token}`);
+    if (tokenUsed) {
+      setStatus('error');
+      setMessage('Tento přihlašovací odkaz již byl použit. Požádejte o nový.');
+      globalVerificationGuard.delete(tokenKey);
+      return;
+    }
 
     // Zabránění vícenásobnému volání API
     if (verificationAttempted.current) {
+      globalVerificationGuard.delete(tokenKey);
       return;
     }
     
     // Označíme, že jsme již provedli pokus o ověření
     verificationAttempted.current = true;
+    
+    // Označit token jako zpracovávaný
+    processedTokens.add(token);
+    
+    setStatus('loading');
+    setMessage('Ověřuji váš přihlašovací token...');
     
     const verifyToken = async () => {
       try {
@@ -82,6 +150,9 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
           setStatus('success');
           setMessage('Přihlášení bylo úspěšné!');
           
+          // DŮLEŽITÉ: Označit token jako zpracovaný HNED po úspěchu
+          processedTokens.add(token);
+          
           // Uložíme uživatele do localStorage a aktualizujeme stav
           if (data.user) {
             globalAuthState.login(data.user);
@@ -111,7 +182,7 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
                 setStatus('success');
                 setMessage('Tento kurz již vlastníte! Přesměrovávám na váš kurz...');
                 setTimeout(() => {
-                  window.location.href = `/moje-kurzy/${slug}`;
+                  router.push(`/moje-kurzy/${slug}`);
                 }, 2000);
                 return;
               }
@@ -162,37 +233,41 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
           // Nastavíme příznak pro tento konkrétní token, že byl úspěšně ověřen
           localStorage.setItem(`token_verified_${token}`, 'true');
           
+          // Označíme token jako použitý - prevence opakovaného použití
+          localStorage.setItem(`token_used_${token}`, Date.now().toString());
+          
           // Už nepotřebujeme iframe - globalAuthState se postará o správné načtení
           
           
-          // Jednoduché přesměrování
+          // Vyčistíme globální guard
+          globalVerificationGuard.delete(tokenKey);
+          
+          // Použít Next.js router místo window.location.href
           setTimeout(() => {
-            window.location.href = redirectUrl;
+            router.push(redirectUrl);
           }, 800);
         } else {
           setStatus('error');
           setMessage(data.error || 'Při ověřování přihlašovacího odkazu došlo k chybě.');
-          console.error('Chyba při ověřování:', data.error || 'Neznámá chyba');
+          globalVerificationGuard.delete(tokenKey); // Vyčistíme guard při chybě
         }
       } catch (error) {
         setStatus('error');
+        globalVerificationGuard.delete(tokenKey); // Vyčistíme guard při chybě
         setMessage('Při ověřování přihlašovacího odkazu došlo k chybě.');
         console.error('Chyba při ověřování tokenu:', error);
       }
     };
 
-    if (token && email) {
-      verifyToken();
-    } else {
-      setStatus('error');
-      setMessage('Chybí token nebo e-mail pro ověření.');
-    }
+    // Spustit ověření
+    verifyToken();
     
     // Cleanup funkce, která se zavolá při odmontování komponenty
     return () => {
       verificationAttempted.current = false;
+      globalVerificationGuard.delete(tokenKey);
     }
-  }, [token]); // Běží jen když se změní token (což se nikdy nestane)
+  }, [token, email, router, courseId, slug]); // Správné dependencies
 
   return (
     <div className="text-center py-8">
