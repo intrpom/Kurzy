@@ -105,6 +105,15 @@ body {
     @apply border-l-4 border-primary-200 pl-4 italic my-4;
   }
 
+  /* Skrytí scrollbaru pro horizontální scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+
   /* Optimalizace fontů pro mobilní zařízení */
   @media (max-width: 768px) {
     /* Rychlejší načítání - používej system fonty na mobilech */

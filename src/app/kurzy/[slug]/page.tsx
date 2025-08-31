@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import CourseImage from '@/components/CourseImage';
 import MainLayout from '@/app/MainLayout';
-import { FiArrowRight, FiClock, FiBook, FiVideo } from 'react-icons/fi';
+import { FiArrowRight, FiClock, FiBook, FiVideo, FiCreditCard } from 'react-icons/fi';
 import prisma from '@/lib/db';
 // Importy pro ReactMarkdown odstraněny, protože používáme dangerouslySetInnerHTML
 import CourseAccessButton from '@/components/courses/CourseAccessButton';
@@ -250,11 +250,22 @@ export default async function CourseDetail({ params }: { params: { slug: string 
                 </div>
               </div>
               <div className="mb-4">
-                <CourseAccessButton 
-                  courseId={course.id}
-                  slug={course.slug}
-                  price={course.price}
-                />
+                {course.price === 0 ? (
+                  <Link 
+                    href={`/auth/login?courseId=${course.id}&slug=${course.slug}`}
+                    className="btn-primary inline-flex items-center"
+                  >
+                    Získat kurz (je zdarma) <FiArrowRight className="ml-2" />
+                  </Link>
+                ) : (
+                  <Link 
+                    href={`/auth/login?courseId=${course.id}&slug=${course.slug}&price=${course.price}&action=purchase`}
+                    className="btn-primary inline-flex items-center"
+                  >
+                    <FiCreditCard className="mr-2" />
+                    Koupit za {course.price} Kč <FiArrowRight className="ml-2" />
+                  </Link>
+                )}
               </div>
               
               {/* Course Description - přesunuto výše */}
@@ -281,7 +292,7 @@ export default async function CourseDetail({ params }: { params: { slug: string 
                   </div>
                 )}
                 <div className="p-6">
-                  <h3 className="font-medium text-lg mb-4">Co se naučíte:</h3>
+                  <h3 className="font-medium text-lg mb-4">Zaměření kurzu:</h3>
                   <ul className="space-y-2">
                     {course.tags.map((tag: string, index: number) => (
                       <li key={index} className="flex items-start">
@@ -339,11 +350,22 @@ export default async function CourseDetail({ params }: { params: { slug: string 
             )}
           </div>
           <div className="mt-8 text-center">
-            <CourseAccessButton 
-              courseId={course.id}
-              slug={course.slug}
-              price={course.price}
-            />
+            {course.price === 0 ? (
+              <Link 
+                href={`/auth/login?courseId=${course.id}&slug=${course.slug}`}
+                className="btn-primary inline-flex items-center"
+              >
+                Získat kurz (je zdarma) <FiArrowRight className="ml-2" />
+              </Link>
+            ) : (
+              <Link 
+                href={`/auth/login?courseId=${course.id}&slug=${course.slug}&price=${course.price}&action=purchase`}
+                className="btn-primary inline-flex items-center"
+              >
+                <FiCreditCard className="mr-2" />
+                Koupit za {course.price} Kč <FiArrowRight className="ml-2" />
+              </Link>
+            )}
           </div>
         </div>
       </section>

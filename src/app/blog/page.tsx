@@ -96,7 +96,7 @@ export default async function BlogPage() {
                 key={post.id} 
                 href={`/blog/${post.slug}`}
                 prefetch={false}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group flex flex-col h-full"
               >
                 {/* Video Thumbnail */}
                 <div className="aspect-video bg-neutral-100 relative overflow-hidden">
@@ -133,48 +133,51 @@ export default async function BlogPage() {
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-neutral-900 mb-2 group-hover:text-primary-600 transition-colors">
-                    {post.title}
-                  </h2>
-                  
-                  {post.subtitle && (
-                    <p className="text-neutral-600 mb-3">
-                      {post.subtitle}
-                    </p>
-                  )}
+                <div className="p-6 flex flex-col flex-grow">
+                  <div className="flex-grow">
+                    <h2 className="text-xl font-semibold text-neutral-900 mb-2 group-hover:text-primary-600 transition-colors">
+                      {post.title}
+                    </h2>
+                    
+                    {post.subtitle && (
+                      <p className="text-neutral-600 mb-3">
+                        {post.subtitle}
+                      </p>
+                    )}
+                  </div>
 
-                  {/* Meta informace */}
-                  <div className="flex items-center justify-between text-sm text-neutral-500">
-                    <div className="flex items-center space-x-4">
+                  {/* Meta informace a Tags - ukotvené na spodek */}
+                  <div className="space-y-3">
+                    {/* Meta informace */}
+                    <div className="flex items-center justify-between text-sm text-neutral-500">
                       {post.duration && (
-                        <span className="flex items-center">
+                        <span className="inline-flex items-center whitespace-nowrap flex-shrink-0 h-6">
                           <FiClock className="w-4 h-4 mr-1" />
                           {formatDuration(post.duration)}
                         </span>
                       )}
+                      {post.views > 0 && (
+                        <span className="inline-flex items-center whitespace-nowrap flex-shrink-0 h-6">
+                          <FiEye className="w-4 h-4 mr-1" />
+                          {post.views} shlédnutí
+                        </span>
+                      )}
                     </div>
-                    {post.views > 0 && (
-                      <span className="flex items-center">
-                        <FiEye className="w-4 h-4 mr-1" />
-                        {post.views}
-                      </span>
+
+                    {/* Tags */}
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                        {post.tags.map((tag: string) => (
+                          <span 
+                            key={tag}
+                            className="px-2 bg-primary-100 text-primary-700 text-xs rounded-full whitespace-nowrap flex-shrink-0 inline-flex items-center h-6"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
-
-                  {/* Tags */}
-                  {post.tags && post.tags.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {post.tags.map((tag: string) => (
-                        <span 
-                          key={tag}
-                          className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </Link>
             ))}

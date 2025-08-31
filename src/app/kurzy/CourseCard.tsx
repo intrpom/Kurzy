@@ -65,14 +65,14 @@ export default function CourseCard({
           {course.price === 0 ? 'Zdarma' : `${course.price} Kč`}
         </div>
       </div>
-      <div className="p-6 flex flex-col justify-between min-h-[200px]">
-        <div>
-          <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
-          <p className="text-neutral-700 mb-4">
+      <div className="p-6 flex flex-col justify-between min-h-[240px]">
+        <div className="flex-grow">
+          <h3 className="text-xl font-serif font-semibold mb-2 line-clamp-2">{course.title}</h3>
+          <p className="text-neutral-700 mb-4 line-clamp-3">
             {course.subtitle || course.description.substring(0, 120) + '...'}
           </p>
         </div>
-        <div>
+        <div className="mt-auto">
           {course.price === 0 ? (
             // Pro kurzy zdarma - stále používáme CourseAccessButton
             <CourseAccessButton 

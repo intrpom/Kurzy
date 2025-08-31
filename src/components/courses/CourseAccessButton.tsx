@@ -12,12 +12,13 @@ import {
   GuestButton
 } from './CourseAccessButtonStates';
 
-interface CourseAccessButtonProps {
+export interface CourseAccessButtonProps {
   courseId: string;
   slug: string;
   price: number;
   hasAccess?: boolean;
   loadingAccess?: boolean;
+  isDetailPage?: boolean;
 }
 
 /**
@@ -29,13 +30,20 @@ export default function CourseAccessButton({
   slug, 
   price, 
   hasAccess: providedHasAccess = false,
-  loadingAccess = false 
+  loadingAccess = false,
+  isDetailPage = false
 }: CourseAccessButtonProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
   
   const [addingCourse, setAddingCourse] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isClient, setIsClient] = useState<boolean>(false);
+  
+  // Detekce client-side pro prevenci hydration chyb
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   // Component mounted
   
@@ -102,8 +110,14 @@ export default function CourseAccessButton({
   }
   
   // Načítání autentizace - čekáme na dokončení ověření
-  if (loading) {
+  // Pouze na client-side pro prevenci hydration chyb
+  if (loading && isClient) {
     return <LoadingButton />;
+  }
+  
+  // Na serveru nebo během prvního renderu na clientu zobrazíme fallback
+  if (!isClient) {
+    return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} isDetailPage={isDetailPage} />;
   }
 
   // Uživatel má přístup ke kurzu
@@ -123,5 +137,5 @@ export default function CourseAccessButton({
   }
 
   // Uživatel SKUTEČNĚ není přihlášen (loading = false, user = null)
-  return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} />;
+  return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} isDetailPage={isDetailPage} />;
 }

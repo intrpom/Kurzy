@@ -99,7 +99,7 @@ export default async function Home() {
               // Dynamické zobrazení kurzů z databáze
               featuredCourses.map((course: FeaturedCourse) => {
                 return (
-                  <div key={course.id} className="card">
+                  <div key={course.id} className="card flex flex-col h-full">
                     <div className="relative h-48 bg-neutral-100">
                       {course.imageUrl && (
                         <CourseImage 
@@ -114,14 +114,16 @@ export default async function Home() {
                         {course.price === 0 ? 'Zdarma' : `${course.price} Kč`}
                       </div>
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
-                      <p className="text-neutral-700 mb-4">
-                        {course.description.length > 120 
-                          ? `${course.description.substring(0, 120)}...` 
-                          : course.description}
-                      </p>
-                      <Link href={`/kurzy/${course.slug}`} prefetch={false} className="btn-primary inline-flex items-center">
+                    <div className="p-6 flex flex-col flex-grow">
+                      <div className="flex-grow">
+                        <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
+                        <p className="text-neutral-700 mb-4">
+                          {course.description.length > 120 
+                            ? `${course.description.substring(0, 120)}...` 
+                            : course.description}
+                        </p>
+                      </div>
+                      <Link href={`/kurzy/${course.slug}`} prefetch={false} className="btn-primary inline-flex items-center justify-center w-full mt-auto">
                         {course.price === 0 ? 'Získat kurz' : 'Koupit kurz'} <FiArrowRight className="ml-2" />
                       </Link>
                     </div>

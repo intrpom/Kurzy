@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiArrowRight, FiCreditCard } from 'react-icons/fi';
 import Link from 'next/link';
 
@@ -11,6 +11,7 @@ interface ButtonProps {
   slug: string;
   price?: number;
   title?: string;
+  isDetailPage?: boolean;
 }
 
 /**
@@ -18,7 +19,7 @@ interface ButtonProps {
  */
 export function LoadingButton() {
   return (
-    <button className="btn-primary inline-flex items-center opacity-75 cursor-wait" disabled>
+    <button className="btn-primary inline-flex items-center justify-center w-full opacity-75 cursor-wait" disabled>
       Načítání...
     </button>
   );
@@ -32,7 +33,7 @@ export function StartCourseButton({ onClick, disabled = false }: { onClick: () =
     <button 
       onClick={onClick}
       disabled={disabled}
-      className={`btn-primary inline-flex items-center ${disabled ? 'opacity-75 cursor-wait' : ''}`}
+      className={`btn-primary inline-flex items-center justify-center w-full ${disabled ? 'opacity-75 cursor-wait' : ''}`}
     >
       {disabled ? 'Spouštění...' : 'Zahájit kurz'} <FiArrowRight className="ml-2" />
     </button>
@@ -46,7 +47,7 @@ export function GetFreeCourseButton({ onClick, disabled = false }: { onClick: ()
   return (
     <button 
       onClick={onClick}
-      className="btn-primary inline-flex items-center"
+      className="btn-primary inline-flex items-center justify-center w-full"
       disabled={disabled}
     >
       {disabled ? (
@@ -146,7 +147,7 @@ export function BuyCourseButton({ courseId, slug, price = 0, title = 'Kurz' }: B
     <button 
       onClick={handleStripeCheckout}
       disabled={isProcessing}
-      className="btn-primary inline-flex items-center"
+      className="btn-primary inline-flex items-center justify-center w-full"
     >
       {isProcessing ? (
         <>
@@ -166,12 +167,18 @@ export function BuyCourseButton({ courseId, slug, price = 0, title = 'Kurz' }: B
 /**
  * Tlačítko pro nepřihlášené uživatele
  */
-export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: ButtonProps) {
+export function GuestButton({ courseId, slug, price = 0, title = 'Kurz', isDetailPage }: ButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isOnDetailPage, setIsOnDetailPage] = useState(isDetailPage ?? false);
   
-  // Zjistíme, zda jsme na stránce detailu kurzu nebo na seznamu kurzů
-  const isDetailPage = typeof window !== 'undefined' && 
-    (window.location.pathname === `/kurzy/${slug}` || window.location.pathname.startsWith(`/kurzy/${slug}/`));
+  // Client-side detekce detail stránky
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDetail = window.location.pathname === `/kurzy/${slug}` || 
+                      window.location.pathname.startsWith(`/kurzy/${slug}/`);
+      setIsOnDetailPage(isDetail);
+    }
+  }, [slug]);
   
   // Detekce prostředí pro správné chování tlačítek
   
@@ -215,7 +222,7 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: Butto
     return (
       <Link 
         href={`/auth/login?courseId=${courseId}&slug=${slug}&price=${price}&action=purchase`}
-        className="btn-primary inline-flex items-center"
+        className="btn-primary inline-flex items-center justify-center w-full"
       >
         <FiCreditCard className="mr-2" />
         Koupit za {price} Kč <FiArrowRight className="ml-2" />
@@ -226,11 +233,11 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz' }: Butto
   // Pro kurzy zdarma - na seznamu ukážeme "Detail kurzu", na detailu "Získat kurz (je zdarma)"
   return (
     <Link 
-      href={isDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}
+      href={isOnDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}
       prefetch={false}
-      className="btn-primary inline-flex items-center"
+      className="btn-primary inline-flex items-center justify-center w-full"
     >
-      {isDetailPage ? 'Získat kurz (je zdarma)' : 'Detail kurzu'} <FiArrowRight className="ml-2" />
+      {isOnDetailPage ? 'Získat kurz (je zdarma)' : 'Detail kurzu'} <FiArrowRight className="ml-2" />
     </Link>
   );
 }

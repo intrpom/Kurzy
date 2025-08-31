@@ -28,6 +28,7 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
   const [loading, setLoading] = useState(false);
   const [loadingPost, setLoadingPost] = useState(true);
   const [post, setPost] = useState<BlogPost | null>(null);
+  const [tagsInput, setTagsInput] = useState('');
   const [formData, setFormData] = useState<FormData>({
     title: '',
     subtitle: '',
@@ -69,6 +70,9 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
           duration: blogPost.duration || 0,
           isPublished: blogPost.isPublished,
         });
+        
+        // Nastavení tags inputu
+        setTagsInput(blogPost.tags.join(', '));
       } catch (error) {
         console.error('Chyba při načítání blog postu:', error);
       } finally {
@@ -102,9 +106,18 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
       .trim();
   };
 
-  // Zpracování změny tagů
-  const handleTagsChange = (value: string) => {
-    const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+  // Zpracování změny tagů - pouze aktualizujeme input
+  const handleTagsInputChange = (value: string) => {
+    setTagsInput(value);
+  };
+
+  // Parsování tagů při blur nebo odeslání
+  const parseTagsFromInput = (value: string) => {
+    return value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+  };
+
+  const handleTagsBlur = () => {
+    const tags = parseTagsFromInput(tagsInput);
     setFormData(prev => ({ ...prev, tags }));
   };
 
@@ -130,13 +143,17 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
     e.preventDefault();
     setLoading(true);
 
+    // Parsujeme tagy před odesláním
+    const finalTags = parseTagsFromInput(tagsInput);
+    const finalFormData = { ...formData, tags: finalTags };
+
     try {
       const response = await fetch(`/api/blog/${params.slug}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(finalFormData),
       });
 
       if (!response.ok) {
@@ -271,7 +288,13 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
                   min="0"
                   value={formData.duration}
                   onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+                  onFocus={(e) => {
+                    if (formData.duration === 0) {
+                      e.target.select();
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="15"
                 />
               </div>
 
@@ -283,8 +306,9 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
                 <input
                   type="text"
                   id="tags"
-                  value={formData.tags.join(', ')}
-                  onChange={(e) => handleTagsChange(e.target.value)}
+                  value={tagsInput}
+                  onChange={(e) => handleTagsInputChange(e.target.value)}
+                  onBlur={handleTagsBlur}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="osobní rozvoj, stres, produktivita"
                 />
@@ -324,12 +348,12 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
           <div className="border-t pt-4">
             <p className="text-sm text-neutral-600 mb-2">🔗 Nebo použít URL:</p>
             <input
-              type="url"
+              type="text"
               id="thumbnailUrl"
               value={formData.thumbnailUrl}
               onChange={(e) => setFormData(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
               className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="https://example.com/thumbnail.jpg"
+              placeholder="https://example.com/thumbnail.jpg nebo /images/blog/nazev.jpg"
             />
             <p className="text-xs text-neutral-500 mt-1">
               Pokud je prázdné, použije se automatický gradient podle tagů.
