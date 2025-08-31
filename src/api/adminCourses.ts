@@ -192,7 +192,7 @@ export async function saveCourseOptimized(
   changedLessonIds: string[] = []
 ): Promise<Course> {
   try {
-    console.log('Optimalizované ukládání kurzu:', course.id);
+    console.log('Ukládání kurzu:', course.id);
     
     // 1. Uložíme kurz včetně modulů a lekcí
     const courseToSave = {

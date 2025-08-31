@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     logger.info('Spouštím zálohovací skript');
 
     // Spuštění zálohovacího skriptu
-    const { stdout, stderr } = await execAsync('node scripts/backup-database.js', {
+    const { stdout, stderr } = await execAsync('node scripts/backup-db.js', {
       cwd: process.cwd(),
       timeout: 30000, // 30 sekund timeout
     });
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       
       if (error.message.includes('ENOENT')) {
         return NextResponse.json({ 
-          error: 'Zálohovací skript nebyl nalezen (scripts/backup-database.js)' 
+          error: 'Zálohovací skript nebyl nalezen (scripts/backup-db.js)' 
         }, { status: 404 });
       }
     }

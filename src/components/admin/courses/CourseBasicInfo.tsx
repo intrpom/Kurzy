@@ -157,6 +157,21 @@ export default function CourseBasicInfo({
             className="w-full p-2 border border-neutral-300 rounded-md"
             placeholder="javascript, react, web"
           />
+          <div className="text-xs text-neutral-500 mt-1">
+            Zadejte tagy oddělené čárkami. Například: javascript, react, programování
+          </div>
+          {course.tags && course.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {course.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>

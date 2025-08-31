@@ -279,22 +279,19 @@ export default function CourseManager({ courseId }: CourseManagerProps) {
     setHasChanges(true);
   };
   
-  // Obsluha změny tagů s optimalizovanou detekcí změn
+  // Obsluha změny tagů
   const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!course) return;
     
     const tagsString = e.target.value;
-    const tagsArray = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
     
-    // Porovnání s původními tagy pro optimalizaci
-    const originalTags = originalCourseRef.current?.tags || [];
-    if (JSON.stringify(originalTags) === JSON.stringify(tagsArray)) {
-      console.log('Kurz: tagy se nezměnily, přeskakuji');
-      return;
-    }
+    // Rozdělení podle čárek a ošetření prázdných stringů
+    const tagsArray = tagsString
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
     
-    console.log(`Kurz: změna tagů z "${originalTags.join(', ')}" na "${tagsArray.join(', ')}"`);
-    
+    // Aktualizace kurzu s novými tagy
     setCourse({
       ...course,
       tags: tagsArray

@@ -285,7 +285,7 @@ export default function BackupPageClient() {
           <div className="mt-4 p-4 bg-gray-50 rounded-md">
             <h3 className="text-lg font-medium">Zálohování databáze</h3>
             <p className="mt-2">Spusťte tento příkaz v kořenovém adresáři projektu:</p>
-            <pre className="mt-2 p-2 bg-gray-100 rounded overflow-x-auto">node scripts/backup-database.js</pre>
+            <pre className="mt-2 p-2 bg-gray-100 rounded overflow-x-auto">node scripts/backup-db.js</pre>
             <p className="mt-2">Záloha bude uložena do adresáře <code>backups</code> s časovým razítkem.</p>
           </div>
           

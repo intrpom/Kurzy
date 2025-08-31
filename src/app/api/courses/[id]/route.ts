@@ -116,6 +116,12 @@ export async function PUT(
     };
     
     console.log('Připravená data pro aktualizaci:', updateData);
+    console.log('Tagy k uložení:', { 
+      input: data.tags, 
+      processed: updateData.tags,
+      isArray: Array.isArray(data.tags),
+      length: Array.isArray(data.tags) ? data.tags.length : 'N/A'
+    });
     
     // Optimalizovaná aktualizace kurzu s batch operacemi
     const updatedCourse = await prisma.$transaction(async (tx) => {
