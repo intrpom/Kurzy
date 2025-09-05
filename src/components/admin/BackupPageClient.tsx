@@ -52,28 +52,49 @@ export default function BackupPageClient() {
 
 
 
-  // Funkce pro spuštění zálohovacího skriptu
-  const handleRunBackupScript = async () => {
+  // Funkce pro vytvoření zálohy databáze
+  const handleCreateBackup = async () => {
     try {
       setIsScriptRunning(true);
       setError(null);
       setScriptResult(null);
 
-      logger.info('Spouštím zálohovací skript');
-      const response = await fetch('/api/admin/run-backup-script', {
+      logger.info('Vytvářím zálohu databáze');
+      const response = await fetch('/api/admin/backup', {
         method: 'POST',
+        credentials: 'include' // Důležité pro předávání cookies s admin session
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Nastala chyba při spuštění zálohovacího skriptu');
+        throw new Error(errorData.error || 'Nastala chyba při vytváření zálohy');
       }
 
       const result = await response.json();
-      logger.info('Zálohovací skript dokončen', result);
-      setScriptResult(result.output);
+      logger.info('Záloha databáze vytvořena', result);
+      
+      // Pokud máme data (produkce/Vercel), nabídneme stažení
+      if (result.data) {
+        const dataStr = JSON.stringify(result.data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = result.fileName || `backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        setScriptResult(`Záloha byla úspěšně vytvořena a stažena jako ${result.fileName}\n\nStatistiky:\n- ${result.stats.users} uživatelů\n- ${result.stats.courses} kurzů\n- ${result.stats.modules} modulů\n- ${result.stats.lessons} lekcí\n- ${result.stats.materials} materiálů`);
+      } else {
+        // Development - soubory jsou uloženy lokálně
+        const location = result.backupDir ? `do složky: ${result.backupDir}` : 'lokálně';
+        setScriptResult(`Záloha byla úspěšně vytvořena a uložena ${location}\n\nStatistiky:\n- ${result.stats.users} uživatelů\n- ${result.stats.courses} kurzů\n- ${result.stats.modules} modulů\n- ${result.stats.lessons} lekcí\n- ${result.stats.materials} materiálů`);
+      }
     } catch (err) {
-      logger.error('Chyba při spuštění zálohovacího skriptu:', err);
+      logger.error('Chyba při vytváření zálohy:', err);
       setError(`Nastala chyba: ${err instanceof Error ? err.message : 'Neznámá chyba'}`);
     } finally {
       setIsScriptRunning(false);
@@ -112,6 +133,7 @@ export default function BackupPageClient() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(backupData),
+        credentials: 'include' // Důležité pro předávání cookies s admin session
       });
 
       if (!response.ok) {
@@ -146,16 +168,16 @@ export default function BackupPageClient() {
         <h2 className="text-xl font-semibold mb-4">Záloha databáze</h2>
         <p className="mb-4 text-gray-700">
           Kliknutím na tlačítko níže vytvoříte zálohu aktuálního stavu databáze.
-          Záloha bude uložena do adresáře <code>backups</code> s časovým razítkem.
+          V development prostředí se uloží do složky <code>backups/</code>, v produkci se stáhne jako JSON soubor.
         </p>
 
 
         <button
-          onClick={handleRunBackupScript}
+          onClick={handleCreateBackup}
           disabled={isScriptRunning}
           className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isScriptRunning ? 'Skript běží...' : 'Zálohovat pomocí skriptu'}
+          {isScriptRunning ? 'Vytvářím zálohu...' : 'Vytvořit zálohu databáze'}
         </button>
 
         {error && (

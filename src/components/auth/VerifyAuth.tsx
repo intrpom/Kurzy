@@ -248,7 +248,16 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
           }, 800);
         } else {
           setStatus('error');
-          setMessage(data.error || 'Při ověřování přihlašovacího odkazu došlo k chybě.');
+          
+          // Specifické zprávy podle typu chyby
+          if (data.action === 'token_already_used') {
+            setMessage('✅ Přihlašovací odkaz již byl použit!\n\nVypadá to, že jste již přihlášeni. Pokud se potřebujete přihlásit znovu, požádejte o nový odkaz.');
+          } else if (data.action === 'token_expired') {
+            setMessage('⏰ Platnost odkazu vypršela!\n\nPřihlašovací odkazy jsou platné pouze 24 hodin. Požádejte o nový odkaz.');
+          } else {
+            setMessage(data.error || 'Při ověřování přihlašovacího odkazu došlo k chybě.');
+          }
+          
           globalVerificationGuard.delete(tokenKey); // Vyčistíme guard při chybě
         }
       } catch (error) {
@@ -298,13 +307,32 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
         </>
       )}
 
-      <p className="text-neutral-700">{message}</p>
+      <div className="text-neutral-700">
+        {message.split('\n').map((line, index) => (
+          <p key={index} className={index === 0 ? "font-medium text-lg" : "mt-2"}>
+            {line}
+          </p>
+        ))}
+      </div>
       
       {status === 'error' && (
-        <div className="mt-6">
-          <a href="/auth/login" className="text-primary-600 hover:text-primary-800 underline">
-            Zkusit znovu
-          </a>
+        <div className="mt-6 space-y-3">
+          {message.includes('již byl použit') ? (
+            <>
+              <a href="/" className="inline-block px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
+                Pokračovat na hlavní stránku
+              </a>
+              <div className="text-sm">
+                <a href="/moje-kurzy" className="text-primary-600 hover:text-primary-800 underline">
+                  Nebo přejít na moje kurzy
+                </a>
+              </div>
+            </>
+          ) : (
+            <a href="/auth/login" className="inline-block px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
+              Požádat o nový odkaz
+            </a>
+          )}
         </div>
       )}
     </div>

@@ -37,14 +37,16 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`Začínám aktualizaci lekce s ID: ${params.id}`);
+    console.log(`[LESSONS API] Začínám aktualizaci lekce s ID: ${params.id}`);
+    console.log(`[LESSONS API] Environment: ${process.env.NODE_ENV}`);
+    console.log(`[LESSONS API] Database URL type: ${process.env.NODE_ENV === 'production' ? 'PRISMA_DATABASE_URL' : 'DATABASE_URL'}`);
     
     // Kontrola připojení k databázi
     try {
       await prisma.$connect();
-      console.log('Připojení k databázi úspěšné');
+      console.log('[LESSONS API] Připojení k databázi úspěšné');
     } catch (dbError) {
-      console.error('Chyba při připojování k databázi:', dbError);
+      console.error('[LESSONS API] Chyba při připojování k databázi:', dbError);
       return NextResponse.json(
         { error: 'Nepodařilo se připojit k databázi', details: String(dbError) },
         { status: 500 }
@@ -64,12 +66,13 @@ export async function PUT(
     let data;
     try {
       data = await request.json();
-      console.log(`Přijatá data pro lekci ${params.id}:`, {
+      console.log(`[LESSONS API] Přijatá data pro lekci ${params.id}:`, {
         title: data.title,
+        duration: data.duration,
         materialsCount: Array.isArray(data.materials) ? data.materials.length : 0
       });
     } catch (parseError) {
-      console.error('Chyba při parsování dat requestu:', parseError);
+      console.error('[LESSONS API] Chyba při parsování dat requestu:', parseError);
       return NextResponse.json(
         { error: 'Neplatný formát dat', details: String(parseError) },
         { status: 400 }
@@ -90,7 +93,7 @@ export async function PUT(
     }
     
     // Příprava dat pro aktualizaci (BEZ MATERIÁLŮ)
-    console.log('Připravuji data pro aktualizaci lekce:', {
+    console.log('[LESSONS API] Připravuji data pro aktualizaci lekce:', {
       title: data.title,
       description: data.description,
       videoUrl: data.videoUrl,
@@ -107,7 +110,12 @@ export async function PUT(
       completed: data.completed
     };
     
-    console.log('Data pro aktualizaci lekce:', updateData);
+    console.log('[LESSONS API] Data pro aktualizaci lekce:', updateData);
+    console.log('[LESSONS API] Duration conversion:', { 
+      original: data.duration, 
+      converted: Number(data.duration),
+      type: typeof data.duration 
+    });
     
     // Aktualizace pouze základních údajů lekce
     const updatedLesson = await prisma.lesson.update({
@@ -130,18 +138,21 @@ export async function PUT(
     return NextResponse.json(completeLesson);
     
   } catch (error) {
-    console.error('Chyba při aktualizaci lekce:', error);
+    console.error('[LESSONS API] Chyba při aktualizaci lekce:', error);
     
     // Podrobnější informace o chybě
     const errorMessage = error instanceof Error ? error.message : 'Neznámá chyba';
-    console.log('Detail chyby:', errorMessage);
-    console.log('Stack trace:', error instanceof Error ? error.stack : 'Nedostupný');
+    console.error('[LESSONS API] Detail chyby:', errorMessage);
+    console.error('[LESSONS API] Stack trace:', error instanceof Error ? error.stack : 'Nedostupný');
+    console.error('[LESSONS API] Error type:', typeof error);
+    console.error('[LESSONS API] Error constructor:', error?.constructor?.name);
     
     return NextResponse.json(
       { 
         error: 'Nepodařilo se aktualizovat lekci',
         details: errorMessage,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV
       },
       { status: 500 }
     );

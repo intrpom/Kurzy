@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { verifySession } from '@/lib/auth';
+import { verifyAdminAccess, createUnauthorizedResponse } from '@/lib/admin-auth';
 import logger from '@/utils/logger';
 
 // Vytvoříme instanci Prisma klienta
@@ -8,11 +9,11 @@ const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
-    // Kontrola autorizace pomocí vlastního autentizačního systému
+    // Kontrola autorizace - pouze přihlášený uživatel může nastavit sebe jako admin
     const session = await verifySession(req);
     if (!session) {
       logger.warn('Pokus o nastavení admin role bez přihlášení');
-      return NextResponse.json({ error: 'Neautorizovaný přístup' }, { status: 401 });
+      return createUnauthorizedResponse('Musíte být přihlášeni');
     }
     
     // Nastavení role admin pro aktuálního uživatele

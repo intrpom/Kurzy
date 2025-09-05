@@ -54,15 +54,6 @@
     "updatedAt": "2025-08-26T09:09:33.331Z"
   },
   {
-    "id": "cmcsfgjdu0001fs0v41wiyjr5",
-    "userId": "cmcs7xfli0000c00wts055dwf",
-    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
-    "progress": 0,
-    "completed": false,
-    "createdAt": "2025-07-07T01:33:36.931Z",
-    "updatedAt": "2025-07-07T01:33:36.931Z"
-  },
-  {
     "id": "cmeesi51j0001n1thkud4rzg0",
     "userId": "cmcs7xfli0000c00wts055dwf",
     "courseId": "cmcoz27iy000en1pvx3rtwhqe",
@@ -70,15 +61,6 @@
     "completed": false,
     "createdAt": "2025-08-16T21:49:24.872Z",
     "updatedAt": "2025-08-16T21:49:24.872Z"
-  },
-  {
-    "id": "cmeeukypd0001qib3k05jtx3s",
-    "userId": "cmcs7xfli0000c00wts055dwf",
-    "courseId": "cmcoz27c80000n1pv09wcuao7",
-    "progress": 0,
-    "completed": false,
-    "createdAt": "2025-08-16T22:47:35.858Z",
-    "updatedAt": "2025-08-16T22:47:35.858Z"
   },
   {
     "id": "cmeewcaa30005qi15e2tx8lz0",
@@ -106,5 +88,23 @@
     "completed": false,
     "createdAt": "2025-08-30T16:09:52.502Z",
     "updatedAt": "2025-08-30T16:09:52.502Z"
+  },
+  {
+    "id": "cmcsfgjdu0001fs0v41wiyjr5",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 17,
+    "completed": false,
+    "createdAt": "2025-07-07T01:33:36.931Z",
+    "updatedAt": "2025-08-31T07:02:11.266Z"
+  },
+  {
+    "id": "cmeeukypd0001qib3k05jtx3s",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27c80000n1pv09wcuao7",
+    "progress": 17,
+    "completed": false,
+    "createdAt": "2025-08-16T22:47:35.858Z",
+    "updatedAt": "2025-08-31T07:03:03.076Z"
   }
 ]

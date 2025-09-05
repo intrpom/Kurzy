@@ -76,7 +76,11 @@ export async function GET(request: NextRequest) {
 
     if (!authToken) {
       return NextResponse.json(
-        { error: 'Neplatný token' },
+        { 
+          error: 'Tento přihlašovací odkaz již byl použit nebo vypršel', 
+          details: 'Pokud se potřebujete přihlásit znovu, požádejte o nový přihlašovací odkaz.',
+          action: 'token_already_used'
+        },
         { status: 400 }
       );
     }
@@ -90,7 +94,11 @@ export async function GET(request: NextRequest) {
       await prisma.$executeRaw`DELETE FROM "AuthToken" WHERE id = ${authToken.id}`;
       
       return NextResponse.json(
-        { error: 'Token vypršel' },
+        { 
+          error: 'Platnost přihlašovacího odkazu vypršela', 
+          details: 'Přihlašovací odkazy jsou platné pouze 24 hodin. Požádejte o nový odkaz.',
+          action: 'token_expired'
+        },
         { status: 400 }
       );
     }

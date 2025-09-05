@@ -342,7 +342,7 @@ export async function PUT(
           }
         }
       });
-    }, { timeout: 10000 }); // Snížení timeoutu díky optimalizaci
+    }, { timeout: 30000 }); // Zvýšení timeoutu pro velké kurzy s mnoha lekcemi
     
     console.log(`Kurz s ID ${params.id} byl úspěšně aktualizován včetně modulů a lekcí`);
     

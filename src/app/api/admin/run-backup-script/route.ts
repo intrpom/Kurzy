@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
   try {
     // Kontrola autorizace
     const session = await verifySession(req);
-    if (!session || session.role !== 'admin') {
-      logger.warn('Pokus o spuštění zálohovacího skriptu bez administrátorských práv', { userId: session?.userId });
+    if (!session || session.role !== 'ADMIN') {
+      logger.warn('Pokus o spuštění zálohovacího skriptu bez administrátorských práv', { userId: session?.userId, role: session?.role });
       return NextResponse.json({ error: 'Neautorizovaný přístup' }, { status: 401 });
     }
 

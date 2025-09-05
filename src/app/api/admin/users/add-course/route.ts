@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/db';
 import { updateUserAfterPurchase } from '@/lib/fluentcrm';
+import { verifyAdminAccess, createUnauthorizedResponse, createForbiddenResponse } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,32 +17,10 @@ export async function POST(request: NextRequest) {
   console.log('POST /api/admin/users/add-course - Admin přidávání kurzu uživateli');
   
   try {
-    // Ověření admin session
-    const sessionCookie = cookies().get('session');
-    if (!sessionCookie || !sessionCookie.value) {
-      return NextResponse.json(
-        { error: 'Uživatel není přihlášen' },
-        { status: 401, headers }
-      );
-    }
-    
-    // Dekódovat session cookie
-    let sessionData;
-    try {
-      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
-    } catch (e) {
-      console.error('Chyba při dekódování session:', e);
-      return NextResponse.json(
-        { error: 'Neplatná session' },
-        { status: 401, headers }
-      );
-    }
-    
-    if (!sessionData || sessionData.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Nedostatečná oprávnění' },
-        { status: 403, headers }
-      );
+    // Ověření admin oprávnění
+    const hasAdminAccess = await verifyAdminAccess(request);
+    if (!hasAdminAccess) {
+      return createForbiddenResponse('Nemáte oprávnění k této akci');
     }
     
     // Získat data z požadavku

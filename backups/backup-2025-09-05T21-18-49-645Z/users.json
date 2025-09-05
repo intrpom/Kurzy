@@ -1,13 +1,5 @@
 [
   {
-    "id": "cmcs7xfli0000c00wts055dwf",
-    "email": "akalina@seznam.cz",
-    "name": "Ales",
-    "role": "admin",
-    "createdAt": "2025-07-06T22:02:48.245Z",
-    "updatedAt": "2025-08-26T06:14:24.989Z"
-  },
-  {
     "id": "cmes9581d00009nebgn9nw56u",
     "email": "houslista.jan@seznam.cz",
     "name": "Jan",
@@ -22,5 +14,13 @@
     "role": "user",
     "createdAt": "2025-08-26T06:17:36.959Z",
     "updatedAt": "2025-08-26T10:53:09.893Z"
+  },
+  {
+    "id": "cmcs7xfli0000c00wts055dwf",
+    "email": "akalina@seznam.cz",
+    "name": "Ales",
+    "role": "ADMIN",
+    "createdAt": "2025-07-06T22:02:48.245Z",
+    "updatedAt": "2025-09-05T20:08:33.769Z"
   }
 ]

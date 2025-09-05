@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { FiMenu, FiX } from 'react-icons/fi';
 import UserMenu from '@/components/auth/UserMenu';
@@ -12,7 +13,14 @@ const Navigation = () => {
     <nav className="bg-white shadow-sm">
       <div className="container-custom py-4">
         <div className="flex justify-between items-center">
-          <Link href="/" prefetch={false} className="text-2xl font-serif font-bold text-neutral-900 no-underline">
+          <Link href="/" prefetch={false} className="flex items-center gap-3 text-2xl font-serif font-bold text-neutral-900 no-underline">
+            <Image 
+              src="/images/Logo-orez.png" 
+              alt="Aleš Kalina Logo" 
+              width={40} 
+              height={40}
+              className="rounded-full"
+            />
             Aleš Kalina
           </Link>
 

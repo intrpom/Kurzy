@@ -315,7 +315,8 @@ export default function EditCourseForm({ courseId }: EditCourseFormProps) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
-          }
+          },
+          credentials: 'include' // Důležité pro předávání cookies s admin session
         });
         
         if (backupResponse.ok) {

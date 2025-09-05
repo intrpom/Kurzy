@@ -74,7 +74,7 @@ const UserMenu = () => {
             Moje kurzy
           </Link>
           
-          {user.role === 'admin' && (
+          {user.role === 'ADMIN' && (
             <Link 
               href="/admin" 
               prefetch={false}

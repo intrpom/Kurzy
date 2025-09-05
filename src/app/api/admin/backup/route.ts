@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifySession } from '@/lib/auth';
+import { verifyAdminAccess, createForbiddenResponse } from '@/lib/admin-auth';
 import logger from '@/utils/logger';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
-    // Kontrola autorizace pomocí vlastního autentizačního systému
-    const session = await verifySession(req);
-    if (!session || session.role !== 'admin') {
-      logger.warn('Pokus o zálohování bez administrátorských práv', { userId: session?.userId });
-      return NextResponse.json({ error: 'Neautorizovaný přístup' }, { status: 401 });
+    // Kontrola admin oprávnění
+    const hasAdminAccess = await verifyAdminAccess(req);
+    if (!hasAdminAccess) {
+      logger.warn('Pokus o zálohování bez administrátorských práv');
+      return createForbiddenResponse('Nemáte oprávnění k zálohování');
     }
 
     logger.info('Začínám proces zálohování databáze');
@@ -115,6 +117,29 @@ export async function POST(req: NextRequest) {
     logger.info(`Načteno ${userCourses.length} přístupů ke kurzům`);
     logger.info(`Načteno ${authTokens.length} autentizačních tokenů`);
 
+    // Vytvoření složky pro zálohy (pouze v development prostředí)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    let backupDir = '';
+    let currentBackupDir = '';
+    
+    if (isDevelopment) {
+      try {
+        backupDir = path.join(process.cwd(), 'backups');
+        if (!fs.existsSync(backupDir)) {
+          fs.mkdirSync(backupDir, { recursive: true });
+        }
+        
+        // Vytvoření složky s časovým razítkem pro tuto zálohu
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        currentBackupDir = path.join(backupDir, `backup-${timestamp}`);
+        fs.mkdirSync(currentBackupDir);
+        
+        logger.info(`Zálohuji do složky: ${currentBackupDir}`);
+      } catch (fsError) {
+        logger.warn('Nepodařilo se vytvořit složku pro zálohy (běží na Vercel?)', fsError);
+      }
+    }
+
     // Vytvoření objektu zálohy
     const backupData = {
       timestamp: new Date().toISOString(),
@@ -133,13 +158,58 @@ export async function POST(req: NextRequest) {
     const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
     const fileName = `backup-${timestamp}.json`;
 
+    // Uložení souborů (pouze v development prostředí)
+    if (isDevelopment && currentBackupDir) {
+      try {
+        // Uložení jednotlivých souborů jako v původním skriptu
+        fs.writeFileSync(
+          path.join(currentBackupDir, 'users.json'),
+          JSON.stringify(users, null, 2)
+        );
+        
+        fs.writeFileSync(
+          path.join(currentBackupDir, 'courses.json'),
+          JSON.stringify(courses, null, 2)
+        );
+        
+        fs.writeFileSync(
+          path.join(currentBackupDir, 'user-courses.json'),
+          JSON.stringify(userCourses, null, 2)
+        );
+        
+        // Vytvoření souboru s metadaty zálohy
+        const metadata = {
+          timestamp: new Date().toISOString(),
+          stats: {
+            courses: courses.length,
+            modules: modules.length,
+            lessons: lessons.length,
+            users: users.length,
+            userCourses: userCourses.length,
+            materials: materials.length,
+            authTokens: authTokens.length,
+          }
+        };
+        
+        fs.writeFileSync(
+          path.join(currentBackupDir, 'metadata.json'),
+          JSON.stringify(metadata, null, 2)
+        );
+        
+        logger.info(`✅ Záloha uložena do: ${currentBackupDir}`);
+      } catch (fsError) {
+        logger.error('Chyba při ukládání souborů zálohy:', fsError);
+      }
+    }
+
     logger.info(`Záloha úspěšně vytvořena: ${fileName}`);
 
-    // Vrácení odpovědi s informacemi o záloze a daty zálohy
+    // Vrácení odpovědi s informacemi o záloze
     return NextResponse.json({
       success: true,
       timestamp: backupData.timestamp,
       fileName,
+      backupDir: isDevelopment ? currentBackupDir : null,
       stats: {
         users: users.length,
         courses: courses.length,
@@ -149,7 +219,8 @@ export async function POST(req: NextRequest) {
         userCourses: userCourses.length,
         authTokens: authTokens.length,
       },
-      data: backupData.data // Přidání samotných dat zálohy do odpovědi
+      // V produkci (Vercel) vrátíme data pro stažení, v development ne (jsou už uložena)
+      data: isDevelopment ? null : backupData.data
     });
   } catch (error) {
     logger.error('Chyba při zálohování databáze:', error);

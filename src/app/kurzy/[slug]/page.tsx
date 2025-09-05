@@ -106,8 +106,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-// Stránka se vygeneruje pouze při buildu a zůstane statická
-// Pro kurzy, které se nemění často, je toto optimální nastavení
+// Stránka se dynamicky generuje bez cache pro aktuální data
+export const dynamic = 'force-dynamic';
 
 // Funkce pro získání dat kurzu
 async function getCourseData(slug: string) {
