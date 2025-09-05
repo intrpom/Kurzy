@@ -120,14 +120,66 @@ export function calculateCourseProgress(course: Course): Course {
  * @param lessonId ID lekce
  * @returns Výsledek operace
  */
-export async function saveLessonProgress(lessonId: string): Promise<{success: boolean}> {
+export async function saveLessonProgress(lessonId: string): Promise<{success: boolean; courseProgress?: any}> {
   try {
-    // Zde by byl API call pro uložení postupu
     console.log(`Ukládám postup pro lekci ${lessonId}`);
-    // Implementace API volání pro uložení postupu bude přidána později
-    return { success: true };
+    
+    const response = await fetch('/api/user/lesson-progress', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ lessonId }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Nepodařilo se uložit postup lekce');
+    }
+    
+    const data = await response.json();
+    console.log(`✅ Postup lekce ${lessonId} úspěšně uložen`);
+    
+    return { 
+      success: true, 
+      courseProgress: data.courseProgress 
+    };
   } catch (error) {
     console.error('Chyba při ukládání postupu:', error);
     throw error;
+  }
+}
+
+/**
+ * Načte postup lekcí pro uživatele
+ * @param courseId ID kurzu (volitelné)
+ * @returns Mapa lessonId -> postup
+ */
+export async function loadLessonProgress(courseId?: string): Promise<Record<string, { completed: boolean; completedAt: string }>> {
+  try {
+    const url = courseId 
+      ? `/api/user/lesson-progress?courseId=${courseId}`
+      : '/api/user/lesson-progress';
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Uživatel není přihlášen - vrátíme prázdný objekt
+        return {};
+      }
+      throw new Error('Nepodařilo se načíst postup lekcí');
+    }
+    
+    const data = await response.json();
+    return data.lessonProgress || {};
+  } catch (error) {
+    console.error('Chyba při načítání postupu lekcí:', error);
+    return {};
   }
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Course } from '@/types/course';
-import { calculateCourseProgress, saveLessonProgress } from '@/api/userCourseProgress';
+import { calculateCourseProgress, saveLessonProgress, loadLessonProgress } from '@/api/userCourseProgress';
 
 interface CourseContentManagerProps {
   initialCourse: Course;
@@ -68,6 +68,39 @@ export default function CourseContentManager({ initialCourse, children }: Course
       : ''
   );
 
+  // Načíst skutečný postup lekcí při inicializaci
+  useEffect(() => {
+    const loadProgress = async () => {
+      try {
+        const lessonProgress = await loadLessonProgress(initialCourse.id);
+        
+        // Aktualizovat kurz s načteným postupem
+        const updatedCourse = { ...safeInitialCourse };
+        
+        // Označit dokončené lekce
+        for (const module of updatedCourse.modules) {
+          for (const lesson of module.lessons) {
+            if (lessonProgress[lesson.id]?.completed) {
+              lesson.completed = true;
+            }
+          }
+        }
+        
+        // Přepočítat celkový postup kurzu
+        const courseWithProgress = calculateCourseProgress(updatedCourse);
+        setCourse(courseWithProgress);
+        
+        console.log(`📚 Načten postup kurzu ${initialCourse.title}: ${courseWithProgress.progress}%`);
+      } catch (error) {
+        console.error('Chyba při načítání postupu kurzu:', error);
+        // Pokud se nepodaří načíst postup, použijeme bezpečný kurz
+        setCourse(safeInitialCourse);
+      }
+    };
+    
+    loadProgress();
+  }, [initialCourse.id, initialCourse.title]);
+
   // Obsluha kliknutí na lekci
   const handleLessonClick = (lessonId: string) => {
     // Najdeme modul, který obsahuje vybranou lekci
@@ -108,29 +141,45 @@ export default function CourseContentManager({ initialCourse, children }: Course
   };
 
   // Obsluha dokončení lekce
-  const handleLessonComplete = (lessonId: string) => {
-    // Vytvoříme kopii kurzu a označíme lekci jako dokončenou
-    const updatedCourse = { ...course };
-    
-    // Najdeme modul a lekci
-    for (const module of updatedCourse.modules) {
-      for (const lesson of module.lessons) {
-        if (lesson.id === lessonId) {
-          // Označíme lekci jako dokončenou
-          lesson.completed = true;
-          break;
+  const handleLessonComplete = async (lessonId: string) => {
+    try {
+      // Nejdříve uložíme postup na server
+      const result = await saveLessonProgress(lessonId);
+      
+      if (result.success) {
+        // Vytvoříme kopii kurzu a označíme lekci jako dokončenou
+        const updatedCourse = { ...course };
+        
+        // Najdeme modul a lekci
+        for (const module of updatedCourse.modules) {
+          for (const lesson of module.lessons) {
+            if (lesson.id === lessonId) {
+              // Označíme lekci jako dokončenou
+              lesson.completed = true;
+              break;
+            }
+          }
         }
+        
+        // Pokud máme postup kurzu ze serveru, použijeme ho
+        if (result.courseProgress) {
+          updatedCourse.progress = result.courseProgress.progress;
+          updatedCourse.completed = result.courseProgress.completed;
+        } else {
+          // Jinak přepočítáme postup lokálně
+          const courseWithProgress = calculateCourseProgress(updatedCourse);
+          updatedCourse.progress = courseWithProgress.progress;
+          updatedCourse.completed = courseWithProgress.completed;
+        }
+        
+        setCourse(updatedCourse);
+        console.log('✅ Lekce označena jako dokončená a postup aktualizován');
       }
-    }
-    
-    // Přepočítáme postup v kurzu
-    const courseWithProgress = calculateCourseProgress(updatedCourse);
-    setCourse(courseWithProgress);
-    
-    // Uložení postupu na server
-    saveLessonProgress(lessonId).catch(error => {
+    } catch (error) {
       console.error('Chyba při ukládání postupu:', error);
-    });
+      // Zobrazit chybu uživateli (můžeme přidat toast notifikaci později)
+      alert('Nepodařilo se uložit postup lekce. Zkuste to prosím znovu.');
+    }
   };
 
   return (
