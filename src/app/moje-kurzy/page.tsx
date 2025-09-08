@@ -24,6 +24,7 @@ interface AvailableCourse {
   description: string;
   imageUrl?: string;
   price: number;
+  slug?: string;
   isFree: boolean;
 }
 
@@ -141,23 +142,26 @@ async function getUserCourses(userId: string): Promise<{ userCourses: UserCourse
       };
     });
     
-    // Získat dostupné kurzy (volné kurzy, které uživatel ještě nemá)
+    // Získat dostupné kurzy (které uživatel ještě nemá) - preferujeme placené
     const userCourseIds = userCoursesData.map(uc => uc.courseId);
     
     const availableCoursesData = await prisma.course.findMany({
       where: {
-        AND: [
-          { price: 0 }, // Pouze zdarma kurzy
-          { id: { notIn: userCourseIds } } // Které uživatel ještě nemá
-        ]
+        id: { notIn: userCourseIds } // Kurzy, které uživatel ještě nemá
       },
       select: {
         id: true,
         title: true,
         description: true,
         imageUrl: true,
-        price: true
-      }
+        price: true,
+        slug: true
+      },
+      orderBy: [
+        { price: 'desc' }, // Nejdřív placené kurzy
+        { createdAt: 'desc' } // Pak podle data vytvoření
+      ],
+      take: 6 // Omezíme na 6 kurzů
     });
     
     const formattedAvailableCourses = availableCoursesData.map(course => ({
@@ -166,6 +170,7 @@ async function getUserCourses(userId: string): Promise<{ userCourses: UserCourse
       description: course.description,
       imageUrl: course.imageUrl,
       price: course.price,
+      slug: course.slug,
       isFree: course.price === 0
     }));
     
@@ -308,7 +313,7 @@ export default async function MyCoursesPage() {
       {availableCourses.length > 0 && (
         <section className="py-12 bg-neutral-50">
           <div className="container-custom">
-            <h2 className="text-2xl font-serif font-bold mb-8">Doporučené kurzy zdarma</h2>
+            <h2 className="text-2xl font-serif font-bold mb-8">Doporučené kurzy</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {availableCourses.map((course: AvailableCourse) => (
                 <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -333,9 +338,15 @@ export default async function MyCoursesPage() {
                     </p>
                     
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-green-600">Zdarma</span>
-                      <Link href="/kurzy" prefetch={false} className="btn-primary">
-                        Zpět na moje kurzy
+                      <span className={`text-lg font-bold ${course.isFree ? 'text-green-600' : 'text-secondary-600'}`}>
+                        {course.isFree ? 'Zdarma' : `${course.price} Kč`}
+                      </span>
+                      <Link 
+                        href={`/kurzy/${course.slug || course.id}`} 
+                        prefetch={false} 
+                        className="btn-primary"
+                      >
+                        Detail kurzu
                       </Link>
                     </div>
                   </div>

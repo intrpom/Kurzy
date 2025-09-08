@@ -50,7 +50,6 @@ async function getUserCourseAccess(): Promise<Record<string, boolean>> {
     const sessionCookie = cookies().get('session');
     
     if (!sessionCookie) {
-      console.log('🔒 Nepřihlášený uživatel - žádný přístup ke kurzům');
       return {};
     }
 
@@ -60,11 +59,9 @@ async function getUserCourseAccess(): Promise<Record<string, boolean>> {
       
       // Kontrola expirace
       if (sessionData.exp < Math.floor(Date.now() / 1000)) {
-        console.log('🔒 Session vypršela - žádný přístup ke kurzům');
         return {};
       }
     } catch (sessionError) {
-      console.log('🔒 Neplatná session - žádný přístup ke kurzům');
       return {};
     }
 
@@ -84,7 +81,6 @@ async function getUserCourseAccess(): Promise<Record<string, boolean>> {
       courseAccess[uc.courseId] = true;
     });
 
-    console.log(`✅ Načten přístup pro ${userCourses.length} kurzů`);
     return courseAccess;
   } catch (error) {
     console.error('Chyba při načítání přístupu ke kurzům:', error);
@@ -106,7 +102,6 @@ export default async function Courses() {
     getUserCourseAccess()
   ]);
 
-  console.log(`📚 Načteno ${courses.length} kurzů, přístup ke ${Object.keys(userCourseAccess).length} kurzům`);
 
   return (
     <MainLayout>

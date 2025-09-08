@@ -7,7 +7,7 @@ import MainLayout from '@/app/MainLayout';
 import { FiUser, FiMail, FiShield, FiTrash2, FiAlertTriangle, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 
 export default function ProfilePage() {
-  const { user, loading, isInitialized, logout } = useAuth();
+  const { user, loading, isInitialized, logout, updateUser } = useAuth();
   const router = useRouter();
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,16 +81,16 @@ export default function ProfilePage() {
 
       const data = await response.json();
       
-      // Aktualizuj context uživatele
-      // Poznámka: AuthContext by měl mít funkci pro aktualizaci uživatele
-      // Pro teď použijeme reload stránky
+      // Aktualizuj context uživatele s novými daty
+      updateUser({ name: editedName });
+      
       setUpdateSuccess(true);
       setIsEditingName(false);
       
-      // Reload stránky za chvilku pro aktualizaci dat
+      // Skryj success zprávu po 3 sekundách
       setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+        setUpdateSuccess(false);
+      }, 3000);
 
     } catch (error) {
       console.error('Chyba při aktualizaci jména:', error);

@@ -18,6 +18,7 @@ type AuthContextType = {
   login: (email: string, name?: string) => Promise<{ success: boolean; message: string; url?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  updateUser: (updatedUser: Partial<User>) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -117,8 +118,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Funkce pro aktualizaci uživatele
+  const updateUser = (updatedUser: Partial<User>) => {
+    globalAuthState.updateUser(updatedUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, isInitialized, error, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, isInitialized, error, login, logout, checkAuth, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

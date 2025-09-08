@@ -45,10 +45,21 @@ export default function CourseAccessButton({
     setIsClient(true);
   }, []);
   
+  // Auto-detekce detail stránky
+  const [isOnDetailPage, setIsOnDetailPage] = useState(isDetailPage);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDetail = window.location.pathname === `/kurzy/${slug}` || 
+                      window.location.pathname.startsWith(`/kurzy/${slug}/`);
+      setIsOnDetailPage(isDetail);
+    }
+  }, [slug, isDetailPage]);
+  
   // Component mounted
   
   // Použít poskytnuté batch data
   const hasAccess = user ? providedHasAccess : false;
+  
   
   // DEBUG removed - causing spam
 
@@ -115,9 +126,9 @@ export default function CourseAccessButton({
     return <LoadingButton />;
   }
   
-  // Na serveru nebo během prvního renderu na clientu zobrazíme fallback
+  // Na serveru nebo během prvního renderu na clientu zobrazíme loading
   if (!isClient) {
-    return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} isDetailPage={isDetailPage} />;
+    return <LoadingButton />;
   }
 
   // Uživatel má přístup ke kurzu
@@ -128,14 +139,18 @@ export default function CourseAccessButton({
   // Uživatel je přihlášen, ale nemá přístup ke kurzu
   if (user) {
     if (price === 0) {
-      // Pro kurzy zdarma
-      return <GetFreeCourseButton onClick={handleAccessCourse} disabled={addingCourse || isProcessing} />;
+      // Pro kurzy zdarma - na detail stránce zobrazit "Získat kurz", jinde "Detail kurzu"
+      if (isOnDetailPage) {
+        return <GetFreeCourseButton onClick={handleAccessCourse} disabled={addingCourse || isProcessing} />;
+      } else {
+        return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} isDetailPage={false} />;
+      }
     } else {
-      // Pro placené kurzy - VŽDY BuyCourseButton pro přihlášené uživatele
+      // Pro placené kurzy - zobrazit tlačítko pro nákup
       return <BuyCourseButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} />;
     }
   }
 
   // Uživatel SKUTEČNĚ není přihlášen (loading = false, user = null)
-  return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} isDetailPage={isDetailPage} />;
+  return <GuestButton courseId={courseId} slug={slug} price={price} title={`Kurz ${slug}`} isDetailPage={isOnDetailPage} />;
 }

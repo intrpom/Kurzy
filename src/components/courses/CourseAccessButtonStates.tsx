@@ -56,7 +56,7 @@ export function GetFreeCourseButton({ onClick, disabled = false }: { onClick: ()
           Kurz pro vás připravujeme...
         </>
       ) : (
-        <>Získat zdarma <FiArrowRight className="ml-2" /></>
+        <>Získat kurz (je zdarma) <FiArrowRight className="ml-2" /></>
       )}
     </button>
   );
@@ -230,7 +230,9 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz', isDetai
     );
   }
   
+
   // Pro kurzy zdarma - na seznamu ukážeme "Detail kurzu", na detailu "Získat kurz (je zdarma)"
+
   return (
     <Link 
       href={isOnDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}

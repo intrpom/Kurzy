@@ -229,6 +229,19 @@ class GlobalAuthState {
   }
 
   /**
+   * Aktualizace dat uživatele
+   */
+  updateUser(updatedUser: any): void {
+    if (this.state.isAuthenticated && this.state.user) {
+      const newUser = { ...this.state.user, ...updatedUser };
+      this.storeUserAuth(newUser);
+      this.setState({
+        user: newUser
+      });
+    }
+  }
+
+  /**
    * Registrace listener pro změny stavu
    */
   subscribe(listener: (state: AuthState) => void): () => void {

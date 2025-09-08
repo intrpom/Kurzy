@@ -30,7 +30,6 @@ export default function CoursesWithFilters({ courses, userCourseAccess }: Course
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   
   // Žádné API volání! Data jsou předána z Server komponenty
-  console.log('📦 Přístup ke kurzům předán ze serveru:', Object.keys(userCourseAccess).length, 'kurzů');
 
   // Filtrování kurzů podle aktivního filtru
   const filteredCourses = useMemo(() => {

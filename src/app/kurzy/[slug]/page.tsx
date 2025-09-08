@@ -3,10 +3,10 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import CourseImage from '@/components/CourseImage';
 import MainLayout from '@/app/MainLayout';
-import { FiArrowRight, FiClock, FiBook, FiVideo, FiCreditCard } from 'react-icons/fi';
+import { FiArrowRight, FiClock, FiBook, FiVideo, FiCreditCard, FiDollarSign } from 'react-icons/fi';
 import prisma from '@/lib/db';
 // Importy pro ReactMarkdown odstraněny, protože používáme dangerouslySetInnerHTML
-import CourseAccessButton from '@/components/courses/CourseAccessButton';
+import CourseDetailButton from '@/components/courses/CourseDetailButton';
 import CourseDetailClient from '@/components/courses/CourseDetailClient';
 import CourseDescription from '@/components/courses/CourseDescription';
 
@@ -248,25 +248,18 @@ export default async function CourseDetail({ params }: { params: { slug: string 
                   <FiVideo className="mr-2 text-primary-600" />
                   <span>{totalLessons} lekcí</span>
                 </div>
+                <div className={`flex items-center text-sm rounded-full px-4 py-1 shadow-sm ${
+                  course.price > 0 
+                    ? 'bg-secondary-500 text-white' 
+                    : 'bg-green-500 text-white'
+                }`}>
+                  <FiDollarSign className="mr-2" />
+                  <span className="font-semibold">
+                    {course.price > 0 ? `${course.price} Kč` : 'Zdarma'}
+                  </span>
+                </div>
               </div>
-              <div className="mb-4">
-                {course.price === 0 ? (
-                  <Link 
-                    href={`/auth/login?courseId=${course.id}&slug=${course.slug}`}
-                    className="btn-primary inline-flex items-center"
-                  >
-                    Získat kurz (je zdarma) <FiArrowRight className="ml-2" />
-                  </Link>
-                ) : (
-                  <Link 
-                    href={`/auth/login?courseId=${course.id}&slug=${course.slug}&price=${course.price}&action=purchase`}
-                    className="btn-primary inline-flex items-center"
-                  >
-                    <FiCreditCard className="mr-2" />
-                    Koupit za {course.price} Kč <FiArrowRight className="ml-2" />
-                  </Link>
-                )}
-              </div>
+              {/* Starý hardcoded kód odstraněn - používáme CourseDetailButton níže */}
               
               {/* Course Description - přesunuto výše */}
               <div className="mt-4">
@@ -372,22 +365,11 @@ export default async function CourseDetail({ params }: { params: { slug: string 
             })()}
           </div>
           <div className="mt-8 text-center">
-            {course.price === 0 ? (
-              <Link 
-                href={`/auth/login?courseId=${course.id}&slug=${course.slug}`}
-                className="btn-primary inline-flex items-center"
-              >
-                Získat kurz (je zdarma) <FiArrowRight className="ml-2" />
-              </Link>
-            ) : (
-              <Link 
-                href={`/auth/login?courseId=${course.id}&slug=${course.slug}&price=${course.price}&action=purchase`}
-                className="btn-primary inline-flex items-center"
-              >
-                <FiCreditCard className="mr-2" />
-                Koupit za {course.price} Kč <FiArrowRight className="ml-2" />
-              </Link>
-            )}
+            <CourseDetailButton 
+              courseId={course.id}
+              slug={course.slug}
+              price={course.price}
+            />
           </div>
         </div>
       </section>
