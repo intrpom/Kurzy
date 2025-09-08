@@ -48,16 +48,37 @@ async function getCurrentUser() {
       return null;
     }
 
-    // Získat aktuální data uživatele
-    const user = await prisma.user.findUnique({
-      where: { id: sessionData.userId || sessionData.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true
-      }
-    });
+    // Získat aktuální data uživatele s retry logikou
+    let user;
+    try {
+      // Zajistíme čerstvé připojení
+      await prisma.$connect();
+      
+      user = await prisma.user.findUnique({
+        where: { id: sessionData.userId || sessionData.id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true
+        }
+      });
+    } catch (connectionError) {
+      console.error('Chyba při připojení k databázi při získávání uživatele:', connectionError);
+      // Zkusíme znovu s novým připojením
+      await prisma.$disconnect();
+      await prisma.$connect();
+      
+      user = await prisma.user.findUnique({
+        where: { id: sessionData.userId || sessionData.id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true
+        }
+      });
+    }
 
     return user;
   } catch (error) {

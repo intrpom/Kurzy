@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     // Kontrola autorizace pomocí vlastního autentizačního systému
     const session = await verifySession(req);
-    if (!session || session.role !== 'admin') {
+    if (!session || session.role !== 'ADMIN') {
       logger.warn('Pokus o obnovení databáze bez administrátorských práv', { userId: session?.userId });
       return NextResponse.json({ error: 'Neautorizovaný přístup' }, { status: 401 });
     }

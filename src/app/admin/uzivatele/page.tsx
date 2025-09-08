@@ -45,9 +45,12 @@ interface UsersData {
 // Server funkce pro získání uživatelů
 async function getUsersData(page: number = 1, limit: number = 10): Promise<UsersData> {
   try {
-    console.log(`👥 Načítám uživatele pro admin - stránka ${page}, limit ${limit}`);
+    console.log(`👥 Načítám uživatele pro admin - stránka ${page}, limit ${limit} - ${new Date().toISOString()}`);
     
     const offset = (page - 1) * limit;
+    
+    // Vynutit čerstvé připojení k databázi
+    await prisma.$connect();
     
     // Spočítat celkový počet uživatelů
     const totalUsers = await prisma.user.count();
@@ -144,8 +147,9 @@ async function getUsersData(page: number = 1, limit: number = 10): Promise<Users
 // Import Client komponenty
 import AdminUsersClient from './AdminUsersClient';
 
-// Stránka se dynamicky generuje bez cache
+// Vynutit dynamické generování stránky bez cache
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface PageProps {
   searchParams: { page?: string };

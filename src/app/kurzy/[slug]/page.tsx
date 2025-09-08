@@ -315,39 +315,61 @@ export default async function CourseDetail({ params }: { params: { slug: string 
         <div className="container-custom">
           <h2 className="text-3xl font-serif font-bold mb-8">Obsah kurzu</h2>
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            {course.modules.map((module: Module, moduleIndex: number) => (
-              <div key={moduleIndex} className="mb-6">
-                {module.lessons.map((lesson: Lesson, lessonIndex: number) => (
-                <div 
-                  key={`${moduleIndex}-${lessonIndex}`} 
-                  className={`p-4 flex justify-between items-center ${moduleIndex !== 0 || lessonIndex !== 0 ? 'border-t border-neutral-200' : ''}`}
-                >
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                      <span className="text-primary-700 font-medium">{moduleIndex * module.lessons.length + lessonIndex + 1}</span>
+            {(() => {
+              const PREVIEW_LESSONS_COUNT = 6; // Počet lekcí pro nepřihlášené uživatele
+              let displayedLessons = 0;
+              let allLessons: Array<{lesson: Lesson, moduleIndex: number, lessonIndex: number, globalIndex: number}> = [];
+              
+              // Vytvoříme seznam všech lekcí s jejich pozicemi
+              course.modules.forEach((module, moduleIndex) => {
+                module.lessons.forEach((lesson, lessonIndex) => {
+                  allLessons.push({
+                    lesson,
+                    moduleIndex,
+                    lessonIndex,
+                    globalIndex: allLessons.length + 1
+                  });
+                });
+              });
+              
+              return (
+                <>
+                  {allLessons.slice(0, PREVIEW_LESSONS_COUNT).map((item, index) => (
+                    <div 
+                      key={`${item.moduleIndex}-${item.lessonIndex}`} 
+                      className={`p-4 flex justify-between items-center ${index !== 0 ? 'border-t border-neutral-200' : ''}`}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                          <span className="text-primary-700 font-medium">{item.globalIndex}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{item.lesson.title}</h3>
+                          <p className="text-sm text-neutral-600">
+                            {item.lesson.description || course.modules[item.moduleIndex].title}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <FiClock className="text-neutral-500 mr-1" />
+                        <span className="text-sm text-neutral-600">{item.lesson.duration} min</span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-medium">{lesson.title}</h3>
+                  ))}
+                  
+                  {totalLessons > PREVIEW_LESSONS_COUNT && (
+                    <div className="p-4 text-center border-t border-neutral-200 bg-neutral-50">
+                      <p className="text-neutral-700 mb-3">
+                        A dalších {totalLessons - PREVIEW_LESSONS_COUNT} lekcí...
+                      </p>
                       <p className="text-sm text-neutral-600">
-                        {lesson.description || module.title}
+                        Přihlaste se pro zobrazení kompletního obsahu kurzu
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center">
-                    <FiClock className="text-neutral-500 mr-1" />
-                    <span className="text-sm text-neutral-600">{lesson.duration} min</span>
-                  </div>
-                </div>
-              ))}
-              </div>
-            ))}
-            {totalLessons > 4 && (
-              <div className="p-4 text-center border-t border-neutral-200">
-                <p className="text-neutral-700">
-                  A dalších {totalLessons - 4} lekcí...
-                </p>
-              </div>
-            )}
+                  )}
+                </>
+              );
+            })()}
           </div>
           <div className="mt-8 text-center">
             {course.price === 0 ? (

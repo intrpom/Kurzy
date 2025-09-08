@@ -220,7 +220,7 @@ export default function ProfilePage() {
                 <div>
                   <p className="text-sm text-neutral-600">Role</p>
                   <p className="font-medium">
-                    {user.role === 'admin' ? 'Administrátor' : 'Uživatel'}
+                    {user.role === 'ADMIN' ? 'Administrátor' : 'Uživatel'}
                   </p>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function ProfilePage() {
                 <div className="text-sm text-neutral-600">Přejít na seznam vašich kurzů</div>
               </button>
 
-              {user.role === 'admin' && (
+              {user.role === 'ADMIN' && (
                 <button
                   onClick={() => router.push('/admin')}
                   className="w-full text-left p-3 rounded-md border border-neutral-200 hover:bg-neutral-50 transition-colors"

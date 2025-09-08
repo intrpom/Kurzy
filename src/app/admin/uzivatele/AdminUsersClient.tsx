@@ -108,14 +108,29 @@ export default function AdminUsersClient({ initialData }: AdminUsersClientProps)
       });
 
       if (!response.ok) {
-        throw new Error(`Chyba při mazání uživatele: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Chyba při mazání uživatele: ${response.status}`);
       }
+
+      const result = await response.json();
 
       // Odstranit uživatele ze stavu
       setUsers(users.filter(user => user.id !== userId));
+      
+      // Zobrazit úspěšnou zprávu
+      alert(`Uživatel byl úspěšně smazán: ${result.message || 'Operace dokončena'}`);
     } catch (err) {
       console.error('Chyba při mazání uživatele:', err);
-      setError(err instanceof Error ? err.message : 'Neznámá chyba');
+      const errorMessage = err instanceof Error ? err.message : 'Neznámá chyba';
+      
+      // Pokud uživatel nebyl nalezen (404), odstraníme ho ze seznamu
+      // protože to znamená, že už neexistuje v databázi
+      if (errorMessage.includes('Uživatel nebyl nalezen')) {
+        setUsers(users.filter(user => user.id !== userId));
+        alert('Uživatel už byl dříve smazán a byl odstraněn ze seznamu.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -182,11 +197,11 @@ export default function AdminUsersClient({ initialData }: AdminUsersClientProps)
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.role === 'admin' 
+                      user.role === 'ADMIN' 
                         ? 'bg-purple-100 text-purple-800' 
                         : 'bg-green-100 text-green-800'
                     }`}>
-                      {user.role === 'admin' ? 'Administrátor' : 'Uživatel'}
+                      {user.role === 'ADMIN' ? 'Administrátor' : 'Uživatel'}
                     </span>
                   </td>
                   <td className="px-6 py-4">

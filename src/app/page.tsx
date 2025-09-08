@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import prisma from '@/lib/db';
 import MainLayout from '@/app/MainLayout';
+import { cookies } from 'next/headers';
+import CourseCard from '@/app/kurzy/CourseCard';
 
 // Definice rozhraní pro kurz
 interface FeaturedCourse {
@@ -13,6 +15,10 @@ interface FeaturedCourse {
   description: string;
   imageUrl: string | null;
   price: number;
+  subtitle?: string | null;
+  isFeatured?: boolean;
+  tags?: string[];
+  level?: string | null;
 }
 
 // Nastavení revalidace pro domovskou stránku na 24 hodin
@@ -29,9 +35,13 @@ async function getFeaturedCourses(): Promise<FeaturedCourse[]> {
         id: true,
         slug: true,
         title: true,
+        subtitle: true,
         description: true,
         imageUrl: true,
-        price: true
+        price: true,
+        isFeatured: true,
+        level: true,
+        tags: true
       },
       take: 3 // Omezení na 3 kurzy
     });
@@ -42,9 +52,60 @@ async function getFeaturedCourses(): Promise<FeaturedCourse[]> {
   }
 }
 
+// Funkce pro získání přístupu uživatele ke kurzům přímo z databáze
+async function getUserCourseAccess(): Promise<Record<string, boolean>> {
+  try {
+    const sessionCookie = cookies().get('session');
+    
+    if (!sessionCookie) {
+      console.log('🔒 Nepřihlášený uživatel - žádný přístup ke kurzům');
+      return {};
+    }
+
+    let sessionData;
+    try {
+      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+      
+      // Kontrola expirace
+      if (sessionData.exp < Math.floor(Date.now() / 1000)) {
+        console.log('🔒 Session vypršela - žádný přístup ke kurzům');
+        return {};
+      }
+    } catch (sessionError) {
+      console.log('🔒 Neplatná session - žádný přístup ke kurzům');
+      return {};
+    }
+
+    // Načíst všechny UserCourse záznamy pro tohoto uživatele
+    const userCourses = await prisma.userCourse.findMany({
+      where: {
+        userId: sessionData.userId || sessionData.id,
+      },
+      select: {
+        courseId: true,
+      },
+    });
+
+    // Vytvořit mapu courseId -> hasAccess
+    const courseAccess: Record<string, boolean> = {};
+    userCourses.forEach(uc => {
+      courseAccess[uc.courseId] = true;
+    });
+
+    console.log(`✅ Načten přístup pro ${userCourses.length} kurzů`);
+    return courseAccess;
+  } catch (error) {
+    console.error('Chyba při načítání přístupu ke kurzům:', error);
+    return {};
+  }
+}
+
 export default async function Home() {
-  // Načtení doporučených kurzů
-  const featuredCourses = await getFeaturedCourses();
+  // Načtení doporučených kurzů a přístupu uživatele paralelně
+  const [featuredCourses, userCourseAccess] = await Promise.all([
+    getFeaturedCourses(),
+    getUserCourseAccess()
+  ]);
   return (
     <MainLayout>
       {/* Hero Section */}
@@ -96,40 +157,16 @@ export default async function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredCourses.length > 0 ? (
-              // Dynamické zobrazení kurzů z databáze
-              featuredCourses.map((course: FeaturedCourse) => {
-                return (
-                  <div key={course.id} className="card flex flex-col h-full">
-                    <div className="relative h-48 bg-neutral-100">
-                      {course.imageUrl && (
-                        <CourseImage 
-                          src={course.imageUrl} 
-                          alt={course.title}
-                          width={400}
-                          height={225}
-                          className="w-full h-auto rounded-t-lg object-cover"
-                        />
-                      )}
-                      <div className="absolute top-4 right-4 bg-primary-600 text-white text-sm font-medium px-2 py-1 rounded">
-                        {course.price === 0 ? 'Zdarma' : `${course.price} Kč`}
-                      </div>
-                    </div>
-                    <div className="p-6 flex flex-col flex-grow">
-                      <div className="flex-grow">
-                        <h3 className="text-xl font-serif font-semibold mb-2">{course.title}</h3>
-                        <p className="text-neutral-700 mb-4">
-                          {course.description.length > 120 
-                            ? `${course.description.substring(0, 120)}...` 
-                            : course.description}
-                        </p>
-                      </div>
-                      <Link href={`/kurzy/${course.slug}`} prefetch={false} className="btn-primary inline-flex items-center justify-center w-full mt-auto">
-                        {course.price === 0 ? 'Získat kurz' : 'Koupit kurz'} <FiArrowRight className="ml-2" />
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })
+              // Dynamické zobrazení kurzů z databáze pomocí CourseCard komponenty
+              featuredCourses.map((course: FeaturedCourse, index: number) => (
+                <CourseCard 
+                  key={course.id} 
+                  course={course} 
+                  priority={index < 3}
+                  hasAccess={userCourseAccess[course.id] || false}
+                  loadingAccess={false}
+                />
+              ))
             ) : (
               // Záložní zobrazení, pokud nejsou žádné doporučené kurzy
               <div className="col-span-3 text-center p-8 bg-neutral-50 rounded-lg">

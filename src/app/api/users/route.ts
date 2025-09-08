@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   try {
     // Ověření, zda je uživatel přihlášen jako admin
     const session = await verifySession(request);
-    if (!session || session.role !== 'admin') {
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Nemáte oprávnění k zobrazení uživatelů' }, { status: 403 });
     }
 
@@ -19,6 +19,15 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
+
+    // Zajistíme čerstvé připojení před dotazy
+    try {
+      await prisma.$connect();
+    } catch (connectError) {
+      console.error('Chyba při připojování k databázi:', connectError);
+      await prisma.$disconnect();
+      await prisma.$connect();
+    }
 
     // Získání celkového počtu uživatelů
     const totalUsers = await prisma.user.count();
@@ -82,14 +91,10 @@ export async function GET(request: NextRequest) {
 // DELETE /api/users - Smazání uživatele
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('DEBUG: Začínám DELETE /api/users');
-    
     // Ověření, zda je uživatel přihlášen jako admin
     const session = await verifySession(request);
-    console.log('DEBUG: Session po verifySession:', { session: session ? { userId: session.userId, email: session.email, role: session.role } : null });
     
-    if (!session || session.role !== 'admin') {
-      console.log('DEBUG: Uživatel nemá admin oprávnění');
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Nemáte oprávnění k mazání uživatelů' }, { status: 403 });
     }
 
@@ -101,25 +106,45 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Kontrola, zda se admin nesnaží smazat sám sebe
-    console.log('DEBUG: Kontrola mazání uživatele:', { sessionUserId: session.userId, targetUserId: userId });
     if (session.userId === userId) {
       return NextResponse.json({ error: 'Nemůžete smazat svůj vlastní účet' }, { status: 400 });
     }
 
-    // Ověření, že uživatel existuje
-    const userToDelete = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        userCourses: true,
-        tokens: true,
-      },
-    });
-
-    if (!userToDelete) {
-      return NextResponse.json({ error: 'Uživatel nebyl nalezen' }, { status: 404 });
+    // Ověření, že uživatel existuje s retry logikou
+    let userToDelete;
+    try {
+      // Zajistíme čerstvé připojení
+      await prisma.$connect();
+      
+      userToDelete = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          userCourses: true,
+          tokens: true,
+        },
+      });
+    } catch (connectionError) {
+      console.error('Chyba při připojení k databázi:', connectionError);
+      // Zkusíme znovu s novým připojením
+      await prisma.$disconnect();
+      await prisma.$connect();
+      
+      userToDelete = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          userCourses: true,
+          tokens: true,
+        },
+      });
     }
 
-    // Smazání všech souvisejících dat uživatele v transakci
+    if (!userToDelete) {
+      return NextResponse.json({ 
+        error: 'Uživatel nebyl nalezen. Možná už byl smazán nebo má jiné ID.' 
+      }, { status: 404 });
+    }
+
+    // Smazání všech souvisejících dat uživatele v transakci s timeoutem
     await prisma.$transaction(async (tx) => {
       // Smazání všech kurzů uživatele
       await tx.userCourse.deleteMany({
@@ -135,7 +160,7 @@ export async function DELETE(request: NextRequest) {
       await tx.user.delete({
         where: { id: userId },
       });
-    });
+    }, { timeout: 10000 }); // 10 sekund timeout
 
     console.log(`Admin ${session.email} smazal uživatele ${userToDelete.email} (ID: ${userId})`);
 
