@@ -53,12 +53,32 @@ async function handleCheckoutCompleted(session: any) {
     console.log('=== STRIPE WEBHOOK: checkout.session.completed ===');
     console.log('Session ID:', session.id);
     console.log('Customer email:', session.customer_details?.email);
-    console.log('Session metadata:', session.metadata);
+    console.log('Customer name:', session.customer_details?.name);
     
     const { courseId, courseSlug } = session.metadata;
     
     if (!courseId) {
       console.error('Chybí courseId v session metadata');
+      return;
+    }
+
+    // DODATEČNÁ BEZPEČNOSTNÍ KONTROLA: Ověřit že platba pochází z naší domény
+    const allowedDomains = [
+      'kurzy-three.vercel.app',
+      'onlinekurzy.ales-kalina.cz',
+      'localhost:3000'
+    ];
+    
+    const successUrl = session.success_url || '';
+    const isFromAllowedDomain = allowedDomains.some(domain => 
+      successUrl.includes(domain)
+    );
+    
+    if (!isFromAllowedDomain && successUrl) {
+      console.log(`🚫 WEBHOOK IGNOROVÁN: Platba nepochází z povolené domény`);
+      console.log('🔍 Success URL:', successUrl);
+      console.log('🔍 Povolené domény:', allowedDomains);
+      console.log('=== KONEC WEBHOOK (NEPOVOLENÁ DOMÉNA) ===');
       return;
     }
 
@@ -70,7 +90,6 @@ async function handleCheckoutCompleted(session: any) {
 
     if (!course) {
       console.log(`🚫 WEBHOOK IGNOROVÁN: Kurz s ID "${courseId}" neexistuje v databázi této aplikace`);
-      console.log('=== KONEC WEBHOOK (IGNOROVÁN) ===');
       return;
     }
 
@@ -113,11 +132,16 @@ async function handleCheckoutCompleted(session: any) {
     try {
       console.log('🔄 Aktualizuji uživatele v FluentCRM po nákupu kurzu...');
       
+      // Získat jméno ze Stripe customer_details
+      const customerName = session.customer_details?.name || undefined;
+      console.log('🏷️ Jméno ze Stripe:', customerName || 'není k dispozici');
+      
       // Použijeme již načtený kurz (máme ho z bezpečnostní kontroly)
       const fluentResponse = await updateUserAfterPurchase(
         user.email,
         course.title,
-        course.slug
+        course.slug,
+        customerName  // Předáme jméno ze Stripe
       );
       
       if (fluentResponse.success) {

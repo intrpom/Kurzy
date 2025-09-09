@@ -311,14 +311,19 @@ export async function addUserToFluentCRM(user: {
 
     // 2. Pokud NEEXISTUJE - vytvořit nový kontakt podle dokumentace
     console.log('FluentCRM: Kontakt neexistuje, vytvářím nový:', user.email);
+    console.log('FluentCRM: Jméno uživatele:', user.name || 'není k dispozici');
     
     const nameParts = user.name?.split(' ') || [];
+    console.log('FluentCRM: Rozdělené jméno:', { 
+      first_name: nameParts[0] || 'Zákazník', 
+      last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'nebude odesláno'
+    });
     
     // Struktura podle dokumentace (řádky 85-100)
     const contactData: FluentCRMContact = {
       email: user.email,
-      first_name: nameParts[0] || '',
-      last_name: nameParts.slice(1).join(' ') || '',
+      first_name: nameParts[0] || 'Zákazník', // Fallback místo prázdného stringu
+      last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined, // Neposílat prázdný string
       status: 'subscribed',
       source: user.source || 'registrace-web',
       tags: [] // Žádné tagy při registraci
@@ -362,7 +367,8 @@ export async function addUserToFluentCRM(user: {
 export async function updateUserAfterPurchase(
   email: string, 
   courseName: string,
-  courseSlug: string
+  courseSlug: string,
+  customerName?: string  // Nový parametr pro jméno ze Stripe
 ): Promise<FluentCRMResponse> {
   try {
     // Najít kontakt podle e-mailu
@@ -370,9 +376,31 @@ export async function updateUserAfterPurchase(
     
     if (!contact) {
       console.warn('FluentCRM: Kontakt nenalezen pro email:', email);
+      
+      // Použít jméno ze Stripe, pokud je k dispozici
+      let userName = customerName;
+      
+      // Pokud není jméno ze Stripe, pokusit se najít v databázi
+      if (!userName) {
+        try {
+          const { prisma } = await import('@/lib/prisma');
+          const user = await prisma.user.findUnique({
+            where: { email },
+            select: { name: true }
+          });
+          userName = user?.name || undefined;
+          console.log('FluentCRM: Nalezeno jméno v databázi:', userName);
+        } catch (dbError) {
+          console.warn('FluentCRM: Nepodařilo se načíst jméno z databáze:', dbError);
+        }
+      } else {
+        console.log('FluentCRM: Použito jméno ze Stripe:', userName);
+      }
+      
       // Vytvoříme nový kontakt
       return await addUserToFluentCRM({ 
         email, 
+        name: userName,
         source: 'nakup-kurzu'
       });
     }
@@ -458,8 +486,22 @@ export async function updateUserAfterFreeCourse(
     const contact = await fluentCRM.findContactByEmail(email);
     
     if (!contact) {
+      // Pokusit se najít jméno uživatele v naší databázi
+      let userName: string | undefined;
+      try {
+        const { prisma } = await import('@/lib/prisma');
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: { name: true }
+        });
+        userName = user?.name || undefined;
+      } catch (dbError) {
+        console.warn('FluentCRM: Nepodařilo se načíst jméno z databáze pro free kurz:', dbError);
+      }
+      
       return await addUserToFluentCRM({ 
         email, 
+        name: userName,
         source: 'free-kurz'
       });
     }

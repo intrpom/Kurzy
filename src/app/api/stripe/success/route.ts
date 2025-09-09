@@ -114,7 +114,8 @@ export async function POST(request: NextRequest) {
       const fluentResponse = await updateUserAfterPurchase(
         user.email,
         course.title,
-        course.slug
+        course.slug,
+        undefined  // V success endpointu nemáme přístup k customer_details
       );
       
       if (fluentResponse.success) {

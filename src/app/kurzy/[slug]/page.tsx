@@ -401,7 +401,9 @@ export default async function CourseDetail({ params }: { params: { slug: string 
                   <div className="p-6">
                     <h3 className="text-xl font-serif font-semibold mb-2">{relatedCourse.title}</h3>
                     <p className="text-neutral-700 mb-4">
-                      {relatedCourse.description}
+                      {relatedCourse.description.length > 150 
+                        ? `${relatedCourse.description.substring(0, 150)}...` 
+                        : relatedCourse.description}
                     </p>
                     <Link 
                       href={`/kurzy/${relatedCourse.slug}`} 
