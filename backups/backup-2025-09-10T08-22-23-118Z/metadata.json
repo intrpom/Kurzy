@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-09-10T08:22:23.720Z",
+  "stats": {
+    "courses": 5,
+    "modules": 22,
+    "lessons": 119,
+    "users": 2,
+    "userCourses": 9,
+    "blogPosts": 15,
+    "authTokens": 0,
+    "userLessonProgress": 0
+  }
+}
