@@ -9,9 +9,10 @@ async function getAdminBlogPosts(): Promise<BlogPost[]> {
     console.log('📝 Načítám blog posty pro admin...');
     
     const posts = await prisma.blogPost.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: [
+        { publishedAt: 'desc' },
+        { createdAt: 'desc' }
+      ]
     });
 
     // Konverze Date objektů na string pro kompatibilitu s BlogPost interface
@@ -20,13 +21,15 @@ async function getAdminBlogPosts(): Promise<BlogPost[]> {
       title: post.title,
       subtitle: post.subtitle ?? undefined,
       content: post.content ?? undefined,
-      excerpt: post.excerpt,
       slug: post.slug,
+      tags: post.tags,
       isPublished: post.isPublished,
+      views: post.views,
+      duration: post.duration ?? undefined,
       videoUrl: post.videoUrl ?? undefined,
       videoLibraryId: post.videoLibraryId ?? undefined,
       thumbnailUrl: post.thumbnailUrl ?? undefined,
-      publishedAt: post.publishedAt?.toISOString() ?? undefined,
+      publishedAt: post.publishedAt ? post.publishedAt.toISOString() : new Date().toISOString(),
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString()
     }));

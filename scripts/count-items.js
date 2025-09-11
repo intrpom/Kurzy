@@ -22,6 +22,14 @@ async function countItems() {
     const materialCount = await prisma.material.count();
     console.log(`Celkový počet materiálů: ${materialCount}`);
     
+    // Počet blog postů
+    const blogPostCount = await prisma.blogPost.count();
+    const publishedBlogPostCount = await prisma.blogPost.count({
+      where: { isPublished: true }
+    });
+    console.log(`Celkový počet blog postů: ${blogPostCount}`);
+    console.log(`Počet publikovaných blog postů: ${publishedBlogPostCount}`);
+    
     // Detailní informace o kurzech
     const courses = await prisma.course.findMany({
       include: {
