@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { cookies } from 'next/headers';
 
 // Povolení veřejného přístupu k blog API
 export const dynamic = 'force-dynamic';
@@ -40,15 +41,58 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Načtení blog postů
+    // Načtení blog postů s optimalizovanými poli
     const posts = await prisma.blogPost.findMany({
       where,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        subtitle: true,
+        thumbnailUrl: true,
+        tags: true,
+        isPublished: true,
+        views: true,
+        duration: true,
+        price: true,
+        isPaid: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        // Nepotřebujeme content pro seznam
+      },
       orderBy: {
         publishedAt: 'desc'
       }
     });
 
-    return NextResponse.json(posts, {
+    // Kontrola přístupu pro přihlášené uživatele - BATCH operace
+    let userMiniCourses: string[] = [];
+    try {
+      const sessionCookie = cookies().get('session');
+      if (sessionCookie) {
+        const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+        const userId = sessionData?.id;
+        if (userId) {
+          // Jeden dotaz pro všechny přístupy najednou
+          const miniCourses = await prisma.userMiniCourse.findMany({
+            where: { userId },
+            select: { blogPostId: true }
+          });
+          userMiniCourses = miniCourses.map(mc => mc.blogPostId);
+        }
+      }
+    } catch (sessionError) {
+      // Ignorujeme chyby session - uživatel není přihlášen
+    }
+
+    // Přidáme hasAccess ke každému postu
+    const postsWithAccess = posts.map(post => ({
+      ...post,
+      hasAccess: !post.isPaid || post.price === 0 || userMiniCourses.includes(post.id)
+    }));
+
+    return NextResponse.json(postsWithAccess, {
       headers: corsHeaders(),
     });
   } catch (error) {

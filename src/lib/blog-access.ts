@@ -2,72 +2,7 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/db';
 
-/**
- * Kontrola přístupu uživatele k blog postu
- * @param blogPostId - ID blog postu
- * @param request - NextRequest objekt (volitelný, pro middleware)
- * @returns Promise<boolean> - true pokud má uživatel přístup
- */
-export async function checkBlogPostAccess(
-  blogPostId: string, 
-  request?: NextRequest
-): Promise<boolean> {
-  try {
-    // Získání session cookie
-    let sessionCookie;
-    if (request) {
-      sessionCookie = request.cookies.get('session');
-    } else {
-      sessionCookie = cookies().get('session');
-    }
-    
-    if (!sessionCookie || !sessionCookie.value) {
-      return false; // Nepřihlášený uživatel nemá přístup
-    }
-    
-    // Dekódování session
-    let sessionData;
-    try {
-      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
-    } catch (e) {
-      return false; // Neplatná session
-    }
-    
-    if (!sessionData || !sessionData.id) {
-      return false; // Neplatná session data
-    }
-    
-    const userId = sessionData.id;
-    
-    // Získání informací o blog postu
-    const blogPost = await prisma.blogPost.findUnique({
-      where: { id: blogPostId },
-      select: { isPaid: true, price: true }
-    });
-    
-    if (!blogPost) {
-      return false; // Blog post neexistuje
-    }
-    
-    // Pokud není placený, má přístup každý přihlášený uživatel
-    if (!blogPost.isPaid || blogPost.price === 0) {
-      return true;
-    }
-    
-    // Pro placené blog posty zkontrolovat přístup v UserMiniCourse
-    const userMiniCourse = await prisma.userMiniCourse.findFirst({
-      where: {
-        userId: userId,
-        blogPostId: blogPostId
-      }
-    });
-    
-    return !!userMiniCourse; // true pokud má přístup
-  } catch (error) {
-    console.error('Chyba při kontrole přístupu k blog postu:', error);
-    return false;
-  }
-}
+// Funkce checkBlogPostAccess byla odstraněna - nahrazena přímými dotazy v API endpointech pro lepší výkon
 
 /**
  * Přidá přístup uživatele k blog postu (po zaplacení)

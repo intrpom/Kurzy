@@ -202,47 +202,53 @@ export default function BlogPage() {
                         )}
                       </div>
                       
-                      {post.isPaid ? (
-                        <button
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            // Kontrola přihlášení
-                            if (!isAuthenticated || !user) {
-                              router.push('/auth/login');
-                              return;
-                            }
-                            
-                            try {
-                              const response = await fetch('/api/blog/purchase', {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                  blogPostId: post.id,
-                                  blogPostSlug: post.slug,
-                                }),
-                              });
-
-                              const data = await response.json();
-
-                              if (data.success && data.url) {
-                                // Přesměrovat na Stripe Checkout
-                                window.location.href = data.url;
-                              } else {
-                                alert(data.error || 'Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                      {post.isPaid && post.price > 0 ? (
+                        post.hasAccess ? (
+                          <span className="text-xs text-green-600 font-medium">
+                            ✓ Zakoupeno
+                          </span>
+                        ) : (
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              
+                              // Kontrola přihlášení
+                              if (!isAuthenticated || !user) {
+                                router.push('/auth/login');
+                                return;
                               }
-                            } catch (error) {
-                              console.error('Chyba při nákupu minikurzu:', error);
-                              alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
-                            }
-                          }}
-                          className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                        >
-                          Koupit
-                        </button>
+                              
+                              try {
+                                const response = await fetch('/api/blog/purchase', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    blogPostId: post.id,
+                                    blogPostSlug: post.slug,
+                                  }),
+                                });
+
+                                const data = await response.json();
+
+                                if (data.success && data.url) {
+                                  // Přesměrovat na Stripe Checkout
+                                  window.location.href = data.url;
+                                } else {
+                                  alert(data.error || 'Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                                }
+                              } catch (error) {
+                                console.error('Chyba při nákupu minikurzu:', error);
+                                alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                              }
+                            }}
+                            className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                          >
+                            Koupit
+                          </button>
+                        )
                       ) : (
                         <span className="text-xs text-neutral-500">
                           Přístup zdarma

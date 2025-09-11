@@ -19,12 +19,12 @@ interface UserMiniCourse {
 interface AvailableMiniCourse {
   id: string;
   title: string;
-  subtitle?: string;
-  thumbnailUrl?: string;
+  subtitle: string | null;
+  thumbnailUrl: string | null;
   slug: string;
   price: number;
   isPaid: boolean;
-  duration?: number;
+  duration: number | null;
   views: number;
 }
 
@@ -228,20 +228,15 @@ export default async function MyMiniCoursesPage() {
   return (
     <MainLayout>
       {/* Header */}
-      <section className="py-16 bg-neutral-50">
+      <section className="py-12 bg-neutral-50">
         <div className="container-custom">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-center mb-4">Moje minikurzy</h1>
-          <p className="text-lg text-neutral-700 text-center max-w-2xl mx-auto">
-            Vítejte zpět, {user.name}! Zde najdete všechny vaše minikurzy o vztazích, práci, financích a zdraví.
-          </p>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-center">Moje minikurzy</h1>
         </div>
       </section>
 
       {/* User Mini Courses */}
-      <section className="py-12">
+      <section className="py-8">
         <div className="container-custom">
-          <h2 className="text-2xl font-serif font-bold mb-8">Vaše minikurzy</h2>
-          
           {userMiniCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {userMiniCourses.map((miniCourse: UserMiniCourse) => (
@@ -323,7 +318,6 @@ export default async function MyMiniCoursesPage() {
       {availableMiniCourses.length > 0 && (
         <section className="py-12 bg-neutral-50">
           <div className="container-custom">
-            <h2 className="text-2xl font-serif font-bold mb-8">Doporučené minikurzy</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {availableMiniCourses.map((miniCourse: AvailableMiniCourse) => (
                 <div key={miniCourse.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">

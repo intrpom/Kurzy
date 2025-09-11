@@ -223,10 +223,7 @@ export default async function MyCoursesPage() {
       {/* Header */}
       <section className="py-16 bg-neutral-50">
         <div className="container-custom">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-center mb-4">Moje kurzy</h1>
-          <p className="text-lg text-neutral-700 text-center max-w-2xl mx-auto">
-            Vítejte zpět, {user.name}! Zde najdete všechny vaše kurzy a můžete pokračovat ve svém vzdělávání.
-          </p>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-center">Moje kurzy</h1>
         </div>
       </section>
 

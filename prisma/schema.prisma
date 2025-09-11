@@ -90,6 +90,10 @@ model BlogPost {
   
   // Relace k nákupům
   userMiniCourses UserMiniCourse[]
+
+  @@index([isPublished]) // Index pro rychlé filtrování publikovaných
+  @@index([isPaid]) // Index pro rychlé filtrování placených
+  @@index([publishedAt]) // Index pro rychlé řazení podle data
 }
 
 model User {
@@ -150,10 +154,12 @@ model UserMiniCourse {
   stripePaymentId String? // ID platby ze Stripe
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  
+
   // Relace
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   blogPost     BlogPost  @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
 
   @@unique([userId, blogPostId]) // Jeden uživatel může koupit jeden minikurz jen jednou
+  @@index([userId]) // Index pro rychlé vyhledávání podle uživatele
+  @@index([blogPostId]) // Index pro rychlé vyhledávání podle minikurzu
 }

@@ -36,6 +36,25 @@ export async function GET(
       },
       data: {
         views: { increment: 1 }
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        subtitle: true,
+        content: true,
+        videoUrl: true,
+        videoLibraryId: true,
+        thumbnailUrl: true,
+        tags: true,
+        isPublished: true,
+        views: true,
+        duration: true,
+        price: true,
+        isPaid: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 

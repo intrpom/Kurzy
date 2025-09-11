@@ -39,11 +39,20 @@ async function processSuccessfulPurchase(sessionId: string, blogPostId: string) 
       throw new Error('Blog post nebyl nalezen');
     }
 
-    // Přidání přístupu uživateli
-    const success = await grantBlogPostAccess(userId, blogPostId);
-    
-    if (!success) {
-      throw new Error('Nepodařilo se přidat přístup');
+    // Kontrola, zda už má přístup (možná už byl přidán webhookem)
+    const existingAccess = await prisma.userMiniCourse.findFirst({
+      where: {
+        userId: userId,
+        blogPostId: blogPostId
+      }
+    });
+
+    // Přidání přístupu pouze pokud ještě nemá
+    if (!existingAccess) {
+      const success = await grantBlogPostAccess(userId, blogPostId);
+      if (!success) {
+        throw new Error('Nepodařilo se přidat přístup');
+      }
     }
 
     return {
