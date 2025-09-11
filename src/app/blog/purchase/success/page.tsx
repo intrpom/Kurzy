@@ -75,7 +75,7 @@ export default async function BlogPurchaseSuccessPage({ searchParams }: PageProp
             <h1 className="text-2xl font-bold text-neutral-900 mb-4">Chyba při zpracování</h1>
             <p className="text-neutral-600 mb-6">Chybí potřebné parametry pro dokončení nákupu.</p>
             <Link href="/blog" className="btn-primary">
-              Zpět na blog
+              Zpět na sekci Minikurzy
             </Link>
           </div>
         </div>
@@ -96,20 +96,20 @@ export default async function BlogPurchaseSuccessPage({ searchParams }: PageProp
               </div>
               <h1 className="text-2xl font-bold text-neutral-900 mb-4">Nákup dokončen!</h1>
               <p className="text-neutral-600 mb-6">
-                Úspěšně jste si zakoupili přístup k článku <strong>{result.blogPost.title}</strong>.
+                Úspěšně jste si zakoupili minikurz <strong>{result.blogPost.title}</strong>.
               </p>
               <div className="space-y-3">
                 <Link 
                   href={`/blog/${result.blogPost.slug}`}
                   className="btn-primary w-full inline-flex items-center justify-center"
                 >
-                  Přečíst článek <FiArrowRight className="ml-2" />
+                  Podívat se na minikurz <FiArrowRight className="ml-2" />
                 </Link>
                 <Link 
                   href="/blog"
                   className="btn-secondary w-full inline-flex items-center justify-center"
                 >
-                  Zpět na blog
+                  Zpět na sekci Minikurzy
                 </Link>
               </div>
             </>
@@ -125,7 +125,7 @@ export default async function BlogPurchaseSuccessPage({ searchParams }: PageProp
                 {result.error || 'Nepodařilo se dokončit nákup. Kontaktujte prosím podporu.'}
               </p>
               <Link href="/blog" className="btn-primary">
-                Zpět na blog
+                Zpět na sekci Minikurzy
               </Link>
             </>
           )}

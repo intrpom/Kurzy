@@ -9,13 +9,19 @@ interface ProtectedVideoPlayerProps {
   libraryId: string;
   title: string;
   className?: string;
+  isPaid?: boolean;
+  price?: number;
+  onPurchase?: () => void;
 }
 
 export default function ProtectedVideoPlayer({ 
   videoId, 
   libraryId, 
   title, 
-  className = "w-full aspect-video" 
+  className = "w-full aspect-video",
+  isPaid = false,
+  price = 0,
+  onPurchase
 }: ProtectedVideoPlayerProps) {
   const { user, loading } = useAuth();
 
@@ -44,7 +50,7 @@ export default function ProtectedVideoPlayer({
     );
   }
 
-  // Pokud není přihlášený, zobrazíme přihlašovací obrazovku
+  // Pokud není přihlášený, zobrazíme odpovídající obrazovku
   return (
       <div className={`${className} bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center relative overflow-hidden`}>
         {/* Background overlay */}
@@ -56,29 +62,61 @@ export default function ProtectedVideoPlayer({
             <div className="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
               <FiLock className="w-10 h-10" />
             </div>
-            <h3 className="text-2xl font-bold mb-2">Video je pouze pro přihlášené</h3>
-            <p className="text-primary-100 mb-6 max-w-md mx-auto">
-              Pro sledování tohoto videa se musíte přihlásit. Přihlášení je zdarma a zabere jen chvilku.
-            </p>
+            
+            {isPaid ? (
+              <>
+                <h3 className="text-2xl font-bold mb-2">Placený minikurz</h3>
+                <p className="text-primary-100 mb-6 max-w-md mx-auto">
+                  Pro sledování tohoto minikurzu je potřeba zakoupit přístup za {price} Kč.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-bold mb-2">Video je pouze pro přihlášené</h3>
+                <p className="text-primary-100 mb-6 max-w-md mx-auto">
+                  Pro sledování tohoto videa se musíte přihlásit. Přihlášení je zdarma a zabere jen chvilku.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="space-y-3">
-            <button
-              onClick={() => {
-                const currentUrl = window.location.pathname;
-                window.location.href = `/auth/login?returnUrl=${encodeURIComponent(currentUrl)}`;
-              }}
-              className="bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg hover:bg-primary-50 transition-colors inline-flex items-center gap-2"
-            >
-              <FiUser className="w-5 h-5" />
-              Přihlásit se zdarma
-            </button>
-            
-            <div className="text-sm text-primary-100">
-              <p>✓ Registrace za pár sekund</p>
-              <p>✓ Přístup ke všem video blogům</p>
-              <p>✓ Bez reklam a spam emailů</p>
-            </div>
+            {isPaid ? (
+              <>
+                <button
+                  onClick={() => onPurchase && onPurchase()}
+                  className="bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg hover:bg-primary-50 transition-colors inline-flex items-center gap-2"
+                >
+                  <FiLock className="w-5 h-5" />
+                  Koupit za {price} Kč
+                </button>
+                
+                <div className="text-sm text-primary-100">
+                  <p>✓ Okamžitý přístup po zakoupení</p>
+                  <p>✓ Kvalitní obsah od experta</p>
+                  <p>✓ Bez dalších poplatků</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    const currentUrl = window.location.pathname;
+                    window.location.href = `/auth/login?returnUrl=${encodeURIComponent(currentUrl)}`;
+                  }}
+                  className="bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg hover:bg-primary-50 transition-colors inline-flex items-center gap-2"
+                >
+                  <FiUser className="w-5 h-5" />
+                  Přihlásit se zdarma
+                </button>
+                
+                <div className="text-sm text-primary-100">
+                  <p>✓ Registrace za pár sekund</p>
+                  <p>✓ Přístup ke všem bezplatným videím</p>
+                  <p>✓ Bez reklam a spam emailů</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

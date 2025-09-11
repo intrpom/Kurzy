@@ -34,7 +34,7 @@ const Navigation = () => {
                 Kurzy
               </Link>
               <Link href="/blog" prefetch={false} className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
-                Blog
+                Minikurzy
               </Link>
               <Link href="/o-mne" prefetch={false} className="text-neutral-800 hover:text-primary-600 font-medium no-underline">
                 O mně
@@ -83,7 +83,7 @@ const Navigation = () => {
                 className="text-neutral-800 hover:text-primary-600 font-medium no-underline"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Blog
+                Minikurzy
               </Link>
               <Link 
                 href="/o-mne" 

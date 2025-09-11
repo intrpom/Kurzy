@@ -50,7 +50,7 @@ export default function AdminLayout({
                   href="/admin/blog" 
                   className={`flex items-center px-4 py-2 rounded-md ${isActive('/admin/blog')}`}
                 >
-                  <FiVideo className="mr-3" /> Blog
+                  <FiVideo className="mr-3" /> Minikurzy
                 </Link>
               </li>
               <li>

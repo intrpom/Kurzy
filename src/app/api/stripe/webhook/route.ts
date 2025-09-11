@@ -82,6 +82,59 @@ async function handleCheckoutCompleted(session: any) {
       return;
     }
 
+    // Rozpoznání typu podle success_url
+    const isBlogPurchase = successUrl.includes('/blog/purchase/success');
+    
+    if (isBlogPurchase) {
+      // BEZPEČNOSTNÍ KONTROLA: Ověřit že blog post existuje v naší databázi
+      const blogPost = await prisma.blogPost.findUnique({
+        where: { id: courseId },
+        select: { id: true, title: true, slug: true, price: true }
+      });
+
+      if (!blogPost) {
+        console.log(`🚫 WEBHOOK IGNOROVÁN: Blog post s ID "${courseId}" neexistuje v databázi této aplikace`);
+        return;
+      }
+
+      console.log(`✅ MINIKURZ OVĚŘEN: ${blogPost.title} (${blogPost.slug})`);
+      
+      // Najít uživatele podle emailu z checkout session
+      const user = await prisma.user.findFirst({
+        where: { email: session.customer_details?.email }
+      });
+
+      if (!user) {
+        console.error('Uživatel nenalezen:', session.customer_details?.email);
+        return;
+      }
+
+      // Přidat přístup k minikurzu
+      await prisma.userMiniCourse.upsert({
+        where: {
+          userId_blogPostId: {
+            userId: user.id,
+            blogPostId: courseId,
+          },
+        },
+        update: {
+          price: blogPost.price,
+          stripePaymentId: session.payment_intent,
+          updatedAt: new Date(),
+        },
+        create: {
+          userId: user.id,
+          blogPostId: courseId,
+          price: blogPost.price,
+          stripePaymentId: session.payment_intent,
+        },
+      });
+
+      console.log(`✅ Minikurz ${courseId} byl úspěšně přidán uživateli ${user.id}`);
+      console.log('=== WEBHOOK ÚSPĚŠNĚ ZPRACOVÁN (MINIKURZ) ===');
+      return;
+    }
+
     // BEZPEČNOSTNÍ KONTROLA: Ověřit že kurz existuje v naší databázi
     const course = await prisma.course.findUnique({
       where: { id: courseId },

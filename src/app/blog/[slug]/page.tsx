@@ -1,41 +1,30 @@
+'use client';
+
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import MainLayout from '@/app/MainLayout';
 import BunnyVideoPlayer from '@/components/BunnyVideoPlayer';
 import { BlogPost } from '@/types/blog';
 import { FiPlay } from 'react-icons/fi';
 import ProtectedVideoPlayer from '@/components/ProtectedVideoPlayer';
-import prisma from '@/lib/db';
+import { useState, useEffect } from 'react';
+import { useGlobalAuth } from '@/hooks/useGlobalAuth';
 
-// Next.js caching - revalidace každých 5 minut
-export const revalidate = 300;
+// Client komponenta - revalidace se nepoužívá
 
-// Optimalizovaná funkce - přímé databázové volání
+// Client-side funkce pro získání blog postu přes API
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    const post = await prisma.blogPost.findFirst({
-      where: {
-        slug: slug,
-        isPublished: true
+    const response = await fetch(`/api/blog/${slug}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
       }
-    });
-    
-    // Konverze Prisma typu na BlogPost interface
-    if (!post) return null;
-    
-    return {
-      ...post,
-      subtitle: post.subtitle ?? undefined,
-      content: post.content ?? undefined,
-      videoUrl: post.videoUrl ?? undefined,
-      videoLibraryId: post.videoLibraryId ?? undefined,
-      thumbnailUrl: post.thumbnailUrl ?? undefined,
-      publishedAt: post.publishedAt.toISOString(),
-      createdAt: post.createdAt.toISOString(),
-      updatedAt: post.updatedAt.toISOString()
-    } as BlogPost;
+      throw new Error('Nepodařilo se načíst blog post');
+    }
+    return await response.json();
   } catch (error) {
-    console.error('Chyba při načítání blog postu z databáze:', error);
+    console.error('Chyba při načítání blog postu:', error);
     return null;
   }
 }
@@ -88,9 +77,39 @@ function getThemeGradient(tags: string[]): string {
   return 'bg-gradient-to-br from-neutral-400 to-neutral-500';
 }
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await getBlogPost(params.slug);
-  
+export default function BlogPostPage({ params }: { params: { slug: string } }) {
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { isAuthenticated, user, isInitialized } = useGlobalAuth();
+
+  useEffect(() => {
+    async function loadPost() {
+      setLoading(true);
+      const blogPost = await getBlogPost(params.slug);
+      setPost(blogPost);
+      setLoading(false);
+      
+      if (!blogPost) {
+        notFound();
+      }
+    }
+    loadPost();
+  }, [params.slug]);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="container-custom py-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-neutral-600">Načítám minikurz...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   if (!post) {
     notFound();
   }
@@ -123,6 +142,40 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                   libraryId={post.videoLibraryId}
                   title={post.title}
                   className="w-full aspect-video"
+                  isPaid={post.isPaid}
+                  price={post.price}
+                  onPurchase={async () => {
+                    // Kontrola přihlášení
+                    if (!isAuthenticated || !user) {
+                      router.push('/auth/login');
+                      return;
+                    }
+                    
+                    try {
+                      const response = await fetch('/api/blog/purchase', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          blogPostId: post.id,
+                          blogPostSlug: post.slug,
+                        }),
+                      });
+
+                      const data = await response.json();
+
+                      if (data.success && data.url) {
+                        // Přesměrovat na Stripe Checkout
+                        window.location.href = data.url;
+                      } else {
+                        alert(data.error || 'Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                      }
+                    } catch (error) {
+                      console.error('Chyba při nákupu minikurzu:', error);
+                      alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                    }
+                  }}
                 />
               ) : (
                 <div className="w-full aspect-video bg-neutral-100 flex items-center justify-center">
@@ -155,6 +208,80 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 <span>{new Date(post.publishedAt).toLocaleDateString('cs-CZ')}</span>
                 {post.duration && <span>• {formatDuration(post.duration)}</span>}
                 <span>• {formatViews(post.views)} shlédnutí</span>
+              </div>
+
+              {/* Cenové informace a nákup */}
+              <div className="border border-neutral-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-neutral-900 mb-1">
+                      {post.isPaid ? 'Placený minikurz' : 'Minikurz zdarma'}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {post.isPaid ? (
+                        <span className="text-2xl font-bold text-primary-600">
+                          {post.price} Kč
+                        </span>
+                      ) : (
+                        <span className="text-lg font-semibold text-green-600">
+                          🆓 Zdarma
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {post.isPaid ? (
+                    post.hasAccess ? (
+                      <div className="text-center">
+                        <div className="text-green-600 font-semibold mb-1">✓ Minikurz zakoupen</div>
+                        <div className="text-xs text-neutral-500">Můžete sledovat ihned</div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          // Kontrola přihlášení
+                          if (!isAuthenticated || !user) {
+                            router.push('/auth/login');
+                            return;
+                          }
+                          
+                          try {
+                            const response = await fetch('/api/blog/purchase', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                blogPostId: post.id,
+                                blogPostSlug: post.slug,
+                              }),
+                            });
+
+                            const data = await response.json();
+
+                            if (data.success && data.url) {
+                              // Přesměrovat na Stripe Checkout
+                              window.location.href = data.url;
+                            } else {
+                              alert(data.error || 'Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                            }
+                          } catch (error) {
+                            console.error('Chyba při nákupu minikurzu:', error);
+                            alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                          }
+                        }}
+                        className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors"
+                      >
+                        Koupit minikurz
+                      </button>
+                    )
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-green-600 font-semibold mb-1">✓ Přístup zdarma</div>
+                      <div className="text-xs text-neutral-500">Můžete sledovat ihned</div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Tagy */}

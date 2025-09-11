@@ -54,15 +54,15 @@ export async function checkBlogPostAccess(
       return true;
     }
     
-    // Pro placené blog posty zkontrolovat přístup v UserBlogPost
-    const userBlogPost = await prisma.userBlogPost.findFirst({
+    // Pro placené blog posty zkontrolovat přístup v UserMiniCourse
+    const userMiniCourse = await prisma.userMiniCourse.findFirst({
       where: {
         userId: userId,
         blogPostId: blogPostId
       }
     });
     
-    return !!userBlogPost; // true pokud má přístup
+    return !!userMiniCourse; // true pokud má přístup
   } catch (error) {
     console.error('Chyba při kontrole přístupu k blog postu:', error);
     return false;
@@ -77,13 +77,32 @@ export async function checkBlogPostAccess(
  */
 export async function grantBlogPostAccess(
   userId: string, 
-  blogPostId: string
+  blogPostId: string,
+  price?: number,
+  stripePaymentId?: string
 ): Promise<boolean> {
   try {
-    await prisma.userBlogPost.create({
-      data: {
+    // Získáme informace o blog postu pro cenu
+    const blogPost = await prisma.blogPost.findUnique({
+      where: { id: blogPostId },
+      select: { price: true }
+    });
+
+    await prisma.userMiniCourse.upsert({
+      where: {
+        userId_blogPostId: {
+          userId,
+          blogPostId
+        }
+      },
+      update: {
+        // Pokud už existuje, neměníme nic
+      },
+      create: {
         userId,
-        blogPostId
+        blogPostId,
+        price: price || blogPost?.price || 0,
+        stripePaymentId
       }
     });
     return true;
@@ -92,7 +111,7 @@ export async function grantBlogPostAccess(
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       return true;
     }
-    console.error('Chyba při přidávání přístupu k blog postu:', error);
+    console.error('Chyba při přidávání přístupu k minikurzu:', error);
     return false;
   }
 }
@@ -125,12 +144,12 @@ export async function getBlogPostsWithAccess(userId?: string) {
     }
     
     // Pro přihlášené uživatele zkontrolovat přístup
-    const userBlogPosts = await prisma.userBlogPost.findMany({
+    const userMiniCourses = await prisma.userMiniCourse.findMany({
       where: { userId },
       select: { blogPostId: true }
     });
     
-    const accessiblePostIds = new Set(userBlogPosts.map(ubp => ubp.blogPostId));
+    const accessiblePostIds = new Set(userMiniCourses.map(umc => umc.blogPostId));
     
     return posts.map(post => ({
       ...post,

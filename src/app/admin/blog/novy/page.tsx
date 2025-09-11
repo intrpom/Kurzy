@@ -18,6 +18,8 @@ interface FormData {
   thumbnailUrl: string;
   tags: string[];
   duration: number;
+  price: number;
+  isPaid: boolean;
   isPublished: boolean;
 }
 
@@ -34,6 +36,8 @@ export default function NewBlogPostPage() {
     thumbnailUrl: '',
     tags: [],
     duration: 0,
+    price: 0,
+    isPaid: false,
     isPublished: true,
   });
   const [tagsInput, setTagsInput] = useState('');
@@ -231,6 +235,65 @@ export default function NewBlogPostPage() {
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="15"
                 />
+              </div>
+
+              {/* Typ a cena minikurzu */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-neutral-700 mb-3">
+                  Typ minikurzu
+                </label>
+                
+                <div className="space-y-4">
+                  {/* Typ - zdarma/placený */}
+                  <div className="flex items-center space-x-6">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="courseType"
+                        checked={!formData.isPaid}
+                        onChange={() => setFormData(prev => ({ ...prev, isPaid: false, price: 0 }))}
+                        className="w-4 h-4 text-primary-600 border-neutral-300 focus:ring-primary-500"
+                      />
+                      <span className="ml-2 text-sm text-neutral-700">🆓 Zdarma</span>
+                    </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="courseType"
+                        checked={formData.isPaid}
+                        onChange={() => setFormData(prev => ({ ...prev, isPaid: true }))}
+                        className="w-4 h-4 text-primary-600 border-neutral-300 focus:ring-primary-500"
+                      />
+                      <span className="ml-2 text-sm text-neutral-700">💰 Placený</span>
+                    </label>
+                  </div>
+                  
+                  {/* Cena - pouze pokud je placený */}
+                  {formData.isPaid && (
+                    <div className="max-w-xs">
+                      <label htmlFor="price" className="block text-sm font-medium text-neutral-700 mb-2">
+                        Cena (Kč)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          id="price"
+                          min="0"
+                          step="1"
+                          value={formData.price}
+                          onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                          className="w-full px-3 py-2 pr-12 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          placeholder="99"
+                        />
+                        <span className="absolute right-3 top-2 text-sm text-neutral-500">Kč</span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Doporučené ceny: 99 Kč (krátké video), 159 Kč (dlouhé video)
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Tagy */}

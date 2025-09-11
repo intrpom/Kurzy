@@ -74,6 +74,15 @@ const UserMenu = () => {
             Moje kurzy
           </Link>
           
+          <Link 
+            href="/moje-minikurzy" 
+            prefetch={false}
+            className="block px-4 py-2 text-sm hover:bg-neutral-50"
+            onClick={() => setIsOpen(false)}
+          >
+            Moje minikurzy
+          </Link>
+          
           {user.role === 'ADMIN' && (
             <Link 
               href="/admin" 

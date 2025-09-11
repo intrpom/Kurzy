@@ -82,9 +82,14 @@ model BlogPost {
   isPublished    Boolean  @default(true)
   views          Int      @default(0)
   duration       Int?
+  price          Float    @default(0)     // Cena minikurzu v Kč
+  isPaid         Boolean  @default(false) // Zda je minikurz placený
   publishedAt    DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  
+  // Relace k nákupům
+  userMiniCourses UserMiniCourse[]
 }
 
 model User {
@@ -97,6 +102,7 @@ model User {
   tokens             AuthToken[]
   userCourses        UserCourse[]
   userLessonProgress UserLessonProgress[]
+  userMiniCourses    UserMiniCourse[]     // Nákupy minikurzů
 }
 
 model AuthToken {
@@ -133,4 +139,21 @@ model UserLessonProgress {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
+}
+
+model UserMiniCourse {
+  id           String    @id @default(cuid())
+  userId       String
+  blogPostId   String
+  purchaseDate DateTime  @default(now())
+  price        Float     // Cena za kterou byl minikurz zakoupen
+  stripePaymentId String? // ID platby ze Stripe
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  // Relace
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blogPost     BlogPost  @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blogPostId]) // Jeden uživatel může koupit jeden minikurz jen jednou
 }

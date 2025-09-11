@@ -1,28 +1,26 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import MainLayout from '@/app/MainLayout';
 import { FiPlay, FiCalendar, FiClock, FiEye } from 'react-icons/fi';
-import prisma from '@/lib/db';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useGlobalAuth } from '@/hooks/useGlobalAuth';
+import { BlogPost } from '@/types/blog';
 
-// Next.js caching - revalidace každých 5 minut
-export const revalidate = 300;
+// Client komponenta - revalidace se nepoužívá
 
-// Optimalizovaná funkce pro získání blog postů - přímé databázové volání
-async function getBlogPosts() {
+// Client-side funkce pro získání blog postů přes API
+async function getBlogPosts(): Promise<BlogPost[]> {
   try {
-    const posts = await prisma.blogPost.findMany({
-      where: {
-        isPublished: true
-      },
-      orderBy: {
-        publishedAt: 'desc'
-      }
-    });
-    
-    return posts;
+    const response = await fetch('/api/blog');
+    if (!response.ok) {
+      throw new Error('Nepodařilo se načíst blog posty');
+    }
+    return await response.json();
   } catch (error) {
-    console.error('Chyba při načítání blog postů z databáze:', error);
-    // Fallback na prázdný seznam místo crashe
+    console.error('Chyba při načítání blog postů:', error);
     return [];
   }
 }
@@ -74,17 +72,43 @@ function formatDate(dateString: string): string {
   });
 }
 
-export default async function BlogPage() {
-  const posts = await getBlogPosts();
+export default function BlogPage() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { isAuthenticated, user, isInitialized } = useGlobalAuth();
+
+  useEffect(() => {
+    async function loadPosts() {
+      setLoading(true);
+      const blogPosts = await getBlogPosts();
+      setPosts(blogPosts);
+      setLoading(false);
+    }
+    loadPosts();
+  }, []);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="container-custom py-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-neutral-600">Načítám minikurzy...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
       <div className="container-custom py-16">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-neutral-900 mb-4">Video Blog</h1>
+          <h1 className="text-4xl font-bold text-neutral-900 mb-4">Minikurzy</h1>
           <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
-            Zdarma videa o vztazích, psychologii a osobním rozvoji
+            Minikurzy o vztazích, práci, financích a zdraví. Některé zdarma, některé za symbolickou cenu.
           </p>
         </div>
 
@@ -160,6 +184,68 @@ export default async function BlogPage() {
                         <span className="inline-flex items-center whitespace-nowrap flex-shrink-0 h-6">
                           <FiEye className="w-4 h-4 mr-1" />
                           {post.views} shlédnutí
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Cena a nákupní tlačítko */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {post.isPaid ? (
+                          <span className="text-lg font-semibold text-primary-600">
+                            {post.price} Kč
+                          </span>
+                        ) : (
+                          <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                            🆓 Zdarma
+                          </span>
+                        )}
+                      </div>
+                      
+                      {post.isPaid ? (
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Kontrola přihlášení
+                            if (!isAuthenticated || !user) {
+                              router.push('/auth/login');
+                              return;
+                            }
+                            
+                            try {
+                              const response = await fetch('/api/blog/purchase', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  blogPostId: post.id,
+                                  blogPostSlug: post.slug,
+                                }),
+                              });
+
+                              const data = await response.json();
+
+                              if (data.success && data.url) {
+                                // Přesměrovat na Stripe Checkout
+                                window.location.href = data.url;
+                              } else {
+                                alert(data.error || 'Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                              }
+                            } catch (error) {
+                              console.error('Chyba při nákupu minikurzu:', error);
+                              alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
+                            }
+                          }}
+                          className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                        >
+                          Koupit
+                        </button>
+                      ) : (
+                        <span className="text-xs text-neutral-500">
+                          Přístup zdarma
                         </span>
                       )}
                     </div>

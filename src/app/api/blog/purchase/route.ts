@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Kontrola, zda uživatel už nemá přístup
     if (userSession) {
-      const existingAccess = await prisma.userBlogPost.findFirst({
+      const existingAccess = await prisma.userMiniCourse.findFirst({
         where: {
           userId: userSession.userId,
           blogPostId: blogPost.id
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
       if (existingAccess) {
         return NextResponse.json(
-          { error: 'Už máte přístup k tomuto článku' },
+          { error: 'Už máte přístup k tomuto minikurzu' },
           { status: 400 }
         );
       }

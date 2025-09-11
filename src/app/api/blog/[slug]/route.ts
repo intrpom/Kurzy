@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { cookies } from 'next/headers';
 
 // Povolení veřejného přístupu k blog API
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,41 @@ export async function GET(
       }
     });
 
-    return NextResponse.json(post, {
+    // Kontrola přístupu pro přihlášené uživatele
+    let hasAccess = false;
+    try {
+      const sessionCookie = cookies().get('session');
+      if (sessionCookie) {
+        const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+        const userId = sessionData?.id;
+        if (userId) {
+          // Pro placené posty zkontrolovat přístup v UserMiniCourse
+          if (post.isPaid && post.price > 0) {
+            const userMiniCourse = await prisma.userMiniCourse.findFirst({
+              where: {
+                userId: userId,
+                blogPostId: post.id
+              }
+            });
+            hasAccess = !!userMiniCourse;
+          } else {
+            // Bezplatné posty - má přístup každý přihlášený
+            hasAccess = true;
+          }
+        }
+      }
+    } catch (sessionError) {
+      // Ignorujeme chyby session - uživatel prostě není přihlášen
+      console.log('Session error (ignorováno):', sessionError);
+    }
+
+    // Přidáme informaci o přístupu k odpovědi
+    const postWithAccess = {
+      ...post,
+      hasAccess: hasAccess || !post.isPaid || post.price === 0
+    };
+
+    return NextResponse.json(postWithAccess, {
       headers: corsHeaders(),
     });
   } catch (error) {

@@ -11,6 +11,9 @@ export interface BlogPost {
   isPublished: boolean;
   views: number;
   duration?: number;  // v minutách
+  price: number;      // Cena minikurzu v Kč
+  isPaid: boolean;    // Zda je minikurz placený
+  hasAccess?: boolean; // Zda má uživatel přístup k minikurzu
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +30,8 @@ export interface BlogPostCreateData {
   tags: string[];
   isPublished?: boolean;
   duration?: number;
+  price?: number;     // Cena minikurzu v Kč
+  isPaid?: boolean;   // Zda je minikurz placený
 }
 
 export interface BlogPostUpdateData extends Partial<BlogPostCreateData> {
