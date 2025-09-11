@@ -31,7 +31,7 @@ async function setAdminRole() {
     // Aktualizovat roli na admin
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { role: 'admin' }
+      data: { role: 'ADMIN' }
     });
     
     console.log(`Role byla úspěšně změněna na: ${updatedUser.role}`);

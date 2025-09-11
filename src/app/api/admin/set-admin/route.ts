@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     // Nastavení role admin pro aktuálního uživatele
     const updatedUser = await prisma.user.update({
       where: { id: session.userId },
-      data: { role: 'admin' }
+      data: { role: 'ADMIN' }
     });
     
     logger.info(`Uživatel ${updatedUser.email} byl nastaven jako admin`);

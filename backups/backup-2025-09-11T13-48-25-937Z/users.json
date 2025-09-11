@@ -1,0 +1,26 @@
+[
+  {
+    "id": "cmcs7xfli0000c00wts055dwf",
+    "email": "akalina@seznam.cz",
+    "name": "Ales",
+    "role": "ADMIN",
+    "createdAt": "2025-07-06T22:02:48.245Z",
+    "updatedAt": "2025-09-09T15:38:15.708Z"
+  },
+  {
+    "id": "cmes5mcvy0000cbexfzgzw0ch",
+    "email": "kalina-ales@seznam.cz",
+    "name": "Hoven",
+    "role": "user",
+    "createdAt": "2025-08-26T06:17:36.959Z",
+    "updatedAt": "2025-09-11T09:20:54.315Z"
+  },
+  {
+    "id": "cmfffsy1p000aqkb834iqd4uw",
+    "email": "akalina@sezznam.cz",
+    "name": "Ales",
+    "role": "ADMIN",
+    "createdAt": "2025-09-11T13:21:22.525Z",
+    "updatedAt": "2025-09-11T13:23:58.101Z"
+  }
+]

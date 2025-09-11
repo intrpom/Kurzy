@@ -17,7 +17,7 @@ interface FormData {
   videoLibraryId: string;
   thumbnailUrl: string;
   tags: string[];
-  duration: number;
+  duration: number | null;
   price: number;
   isPaid: boolean;
   isPublished: boolean;
@@ -35,7 +35,7 @@ export default function NewBlogPostPage() {
     videoLibraryId: '',
     thumbnailUrl: '',
     tags: [],
-    duration: 0,
+    duration: null,
     price: 0,
     isPaid: false,
     isPublished: true,
@@ -225,10 +225,16 @@ export default function NewBlogPostPage() {
                   type="number"
                   id="duration"
                   min="0"
-                  value={formData.duration}
-                  onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+                  value={formData.duration || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      duration: value === '' ? null : parseInt(value) || 0 
+                    }));
+                  }}
                   onFocus={(e) => {
-                    if (formData.duration === 0) {
+                    if (!formData.duration) {
                       e.target.select();
                     }
                   }}
