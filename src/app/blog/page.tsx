@@ -188,25 +188,27 @@ export default function BlogPage() {
                       )}
                     </div>
 
-                    {/* Cena a nákupní tlačítko */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {post.isPaid ? (
-                          <span className="text-lg font-semibold text-primary-600">
-                            {post.price} Kč
+                    {/* Tags */}
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                        {post.tags.map((tag: string) => (
+                          <span 
+                            key={tag}
+                            className="px-2 bg-primary-100 text-primary-700 text-xs rounded-full whitespace-nowrap flex-shrink-0 inline-flex items-center h-6"
+                          >
+                            {tag}
                           </span>
-                        ) : (
-                          <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                            🆓 Zdarma
-                          </span>
-                        )}
+                        ))}
                       </div>
-                      
+                    )}
+
+                    {/* Tlačítko s cenou - úplně na spodku */}
+                    <div className="pt-2 border-t border-neutral-100">
                       {post.isPaid && post.price > 0 ? (
                         post.hasAccess ? (
-                          <span className="text-xs text-green-600 font-medium">
-                            ✓ Zakoupeno
-                          </span>
+                          <div className="w-full px-4 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-lg text-center border border-green-200">
+                            ✓ Zakoupeno za {post.price} Kč
+                          </div>
                         ) : (
                           <button
                             onClick={async (e) => {
@@ -244,31 +246,17 @@ export default function BlogPage() {
                                 alert('Nepodařilo se spustit platbu. Zkuste to prosím později.');
                               }
                             }}
-                            className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                            className="w-full px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
                           >
-                            Koupit
+                            Koupit za {post.price} Kč
                           </button>
                         )
                       ) : (
-                        <span className="text-xs text-neutral-500">
-                          Přístup zdarma
-                        </span>
+                        <div className="w-full px-4 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-lg text-center border border-green-200">
+                          🆓 Zdarma
+                        </div>
                       )}
                     </div>
-
-                    {/* Tags */}
-                    {post.tags && post.tags.length > 0 && (
-                      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                        {post.tags.map((tag: string) => (
-                          <span 
-                            key={tag}
-                            className="px-2 bg-primary-100 text-primary-700 text-xs rounded-full whitespace-nowrap flex-shrink-0 inline-flex items-center h-6"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               </Link>

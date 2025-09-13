@@ -144,6 +144,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                   className="w-full aspect-video"
                   isPaid={post.isPaid}
                   price={post.price}
+                  hasAccess={post.hasAccess}
                   onPurchase={async () => {
                     // Kontrola přihlášení
                     if (!isAuthenticated || !user) {

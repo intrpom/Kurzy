@@ -20,7 +20,7 @@ interface FormData {
   thumbnailUrl: string;
   tags: string[];
   duration: number | null;
-  price: number;
+  price: number | null;
   isPaid: boolean;
   isPublished: boolean;
 }
@@ -324,7 +324,7 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
                         type="radio"
                         name="courseType"
                         checked={!formData.isPaid}
-                        onChange={() => setFormData(prev => ({ ...prev, isPaid: false, price: 0 }))}
+                        onChange={() => setFormData(prev => ({ ...prev, isPaid: false, price: null }))}
                         className="w-4 h-4 text-primary-600 border-neutral-300 focus:ring-primary-500"
                       />
                       <span className="ml-2 text-sm text-neutral-700">🆓 Zdarma</span>
@@ -354,8 +354,14 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
                           id="price"
                           min="0"
                           step="1"
-                          value={formData.price}
-                          onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                          value={formData.price || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              price: value === '' ? null : parseFloat(value) || 0 
+                            }));
+                          }}
                           className="w-full px-3 py-2 pr-12 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                           placeholder="99"
                         />

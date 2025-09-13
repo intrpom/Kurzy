@@ -89,31 +89,63 @@ async function getCurrentUser() {
 }
 
 // Server funkce pro získání minikurzů uživatele
-async function getUserMiniCourses(userId: string): Promise<{ userMiniCourses: UserMiniCourse[], availableMiniCourses: AvailableMiniCourse[] }> {
+async function getUserMiniCourses(userId: string, userRole?: string): Promise<{ userMiniCourses: UserMiniCourse[], availableMiniCourses: AvailableMiniCourse[] }> {
   try {
-    // Získat zakoupené minikurzy uživatele
-    const userMiniCoursesData = await prisma.userMiniCourse.findMany({
-      where: {
-        userId: userId
-      },
-      include: {
-        blogPost: {
-          select: {
-            id: true,
-            title: true,
-            subtitle: true,
-            slug: true,
-            thumbnailUrl: true,
-            price: true,
-            duration: true,
-            views: true
-          }
+    let userMiniCoursesData: any[] = [];
+    
+    if (userRole === 'ADMIN') {
+      // Admin má přístup ke všem publikovaným minikurzům
+      const allBlogPosts = await prisma.blogPost.findMany({
+        where: {
+          isPublished: true
+        },
+        select: {
+          id: true,
+          title: true,
+          subtitle: true,
+          slug: true,
+          thumbnailUrl: true,
+          price: true,
+          duration: true,
+          views: true,
+          createdAt: true
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
-      },
-      orderBy: {
-        purchaseDate: 'desc'
-      }
-    });
+      });
+      
+      // Transformovat do formátu UserMiniCourse
+      userMiniCoursesData = allBlogPosts.map(post => ({
+        blogPost: post,
+        price: post.price, // Aktuální cena
+        purchaseDate: new Date() // Fake datum pro admin
+      }));
+    } else {
+      // Získat zakoupené minikurzy uživatele
+      userMiniCoursesData = await prisma.userMiniCourse.findMany({
+        where: {
+          userId: userId
+        },
+        include: {
+          blogPost: {
+            select: {
+              id: true,
+              title: true,
+              subtitle: true,
+              slug: true,
+              thumbnailUrl: true,
+              price: true,
+              duration: true,
+              views: true
+            }
+          }
+        },
+        orderBy: {
+          purchaseDate: 'desc'
+        }
+      });
+    }
     
     // Transformovat data pro frontend
     const formattedUserMiniCourses = userMiniCoursesData.map((userMiniCourse: any) => ({
@@ -129,30 +161,34 @@ async function getUserMiniCourses(userId: string): Promise<{ userMiniCourses: Us
     }));
     
     // Získat dostupné minikurzy (které uživatel ještě nemá)
-    const userMiniCourseIds = userMiniCoursesData.map(umc => umc.blogPostId);
+    let availableMiniCoursesData: any[] = [];
     
-    const availableMiniCoursesData = await prisma.blogPost.findMany({
-      where: {
-        id: { notIn: userMiniCourseIds }, // Minikurzy, které uživatel ještě nemá
-        isPublished: true
-      },
-      select: {
-        id: true,
-        title: true,
-        subtitle: true,
-        slug: true,
-        thumbnailUrl: true,
-        price: true,
-        isPaid: true,
-        duration: true,
-        views: true
-      },
-      orderBy: [
-        { isPaid: 'desc' }, // Nejdřív placené minikurzy
-        { publishedAt: 'desc' } // Pak podle data publikování
-      ],
-      take: 6 // Omezíme na 6 minikurzů
-    });
+    if (userRole !== 'ADMIN') {
+      const userMiniCourseIds = userMiniCoursesData.map(umc => umc.blogPostId || umc.blogPost.id);
+      
+      availableMiniCoursesData = await prisma.blogPost.findMany({
+        where: {
+          id: { notIn: userMiniCourseIds }, // Minikurzy, které uživatel ještě nemá
+          isPublished: true
+        },
+        select: {
+          id: true,
+          title: true,
+          subtitle: true,
+          slug: true,
+          thumbnailUrl: true,
+          price: true,
+          isPaid: true,
+          duration: true,
+          views: true
+        },
+        orderBy: [
+          { isPaid: 'desc' }, // Nejdřív placené minikurzy
+          { publishedAt: 'desc' } // Pak podle data publikování
+        ],
+        take: 6 // Omezíme na 6 minikurzů
+      });
+    }
     
     const formattedAvailableMiniCourses = availableMiniCoursesData.map(miniCourse => ({
       id: miniCourse.id,
@@ -221,7 +257,7 @@ export default async function MyMiniCoursesPage() {
   }
 
   // Získat minikurzy uživatele
-  const { userMiniCourses, availableMiniCourses } = await getUserMiniCourses(user.id);
+  const { userMiniCourses, availableMiniCourses } = await getUserMiniCourses(user.id, user.role);
 
   console.log(`👤 Uživatel ${user.name}: ${userMiniCourses.length} minikurzů, ${availableMiniCourses.length} dostupných`);
 
@@ -255,7 +291,7 @@ export default async function MyMiniCoursesPage() {
                     )}
                     {/* Purchased Badge */}
                     <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                      Zakoupeno
+                      {user?.role === 'ADMIN' ? 'Admin přístup' : 'Zakoupeno'}
                     </div>
                   </div>
                   

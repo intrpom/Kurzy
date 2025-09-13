@@ -68,13 +68,21 @@ export async function GET(request: NextRequest) {
 
     // Kontrola přístupu pro přihlášené uživatele - BATCH operace
     let userMiniCourses: string[] = [];
+    let isAdmin = false;
     try {
       const sessionCookie = cookies().get('session');
       if (sessionCookie) {
         const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
         const userId = sessionData?.id;
-        if (userId) {
-          // Jeden dotaz pro všechny přístupy najednou
+        const userRole = sessionData?.role;
+        
+        // Kontrola admin role
+        if (userRole === 'ADMIN') {
+          isAdmin = true;
+        }
+        
+        if (userId && !isAdmin) {
+          // Jeden dotaz pro všechny přístupy najednou (pouze pro non-admin uživatele)
           const miniCourses = await prisma.userMiniCourse.findMany({
             where: { userId },
             select: { blogPostId: true }
@@ -89,7 +97,7 @@ export async function GET(request: NextRequest) {
     // Přidáme hasAccess ke každému postu
     const postsWithAccess = posts.map(post => ({
       ...post,
-      hasAccess: !post.isPaid || post.price === 0 || userMiniCourses.includes(post.id)
+      hasAccess: isAdmin || !post.isPaid || post.price === 0 || userMiniCourses.includes(post.id)
     }));
 
     return NextResponse.json(postsWithAccess, {
@@ -121,7 +129,9 @@ export async function POST(request: NextRequest) {
         thumbnailUrl: data.thumbnailUrl,
         tags: data.tags || [],
         isPublished: data.isPublished !== false, // default true
-        duration: data.duration
+        duration: data.duration,
+        price: data.price || 0,
+        isPaid: data.isPaid || false
       }
     });
     

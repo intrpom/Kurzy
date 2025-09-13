@@ -155,7 +155,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
           {loading && (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           )}
-          {loading ? 'Odesílání...' : 'Odeslat přihlašovací odkaz'}
+          {loading ? 'Odesílání...' : 'Přihlásit se'}
         </button>
       </div>
       

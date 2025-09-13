@@ -11,6 +11,7 @@ interface ProtectedVideoPlayerProps {
   className?: string;
   isPaid?: boolean;
   price?: number;
+  hasAccess?: boolean;
   onPurchase?: () => void;
 }
 
@@ -21,6 +22,7 @@ export default function ProtectedVideoPlayer({
   className = "w-full aspect-video",
   isPaid = false,
   price = 0,
+  hasAccess = false,
   onPurchase
 }: ProtectedVideoPlayerProps) {
   const { user, loading } = useAuth();
@@ -37,8 +39,8 @@ export default function ProtectedVideoPlayer({
     );
   }
 
-  // Pokud je uživatel přihlášený, zobrazíme video
-  if (user) {
+  // Pokud má uživatel přístup, zobrazíme video
+  if (user && hasAccess) {
     return (
       <BunnyVideoPlayer
         videoId={videoId}
@@ -50,7 +52,7 @@ export default function ProtectedVideoPlayer({
     );
   }
 
-  // Pokud není přihlášený, zobrazíme odpovídající obrazovku
+  // Pokud není přihlášený nebo nemá přístup, zobrazíme odpovídající obrazovku
   return (
       <div className={`${className} bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center relative overflow-hidden`}>
         {/* Background overlay */}
@@ -63,7 +65,16 @@ export default function ProtectedVideoPlayer({
               <FiLock className="w-10 h-10" />
             </div>
             
-            {isPaid ? (
+            {!user ? (
+              // Uživatel není přihlášený
+              <>
+                <h3 className="text-2xl font-bold mb-2">Video je pouze pro přihlášené</h3>
+                <p className="text-primary-100 mb-6 max-w-md mx-auto">
+                  Pro sledování tohoto videa se musíte přihlásit. Přihlášení je zdarma a zabere jen chvilku.
+                </p>
+              </>
+            ) : isPaid ? (
+              // Uživatel je přihlášený, ale nemá přístup k placenému obsahu
               <>
                 <h3 className="text-2xl font-bold mb-2">Placený minikurz</h3>
                 <p className="text-primary-100 mb-6 max-w-md mx-auto">
@@ -71,33 +82,19 @@ export default function ProtectedVideoPlayer({
                 </p>
               </>
             ) : (
+              // Uživatel je přihlášený, ale nemá přístup k bezplatnému obsahu (nemělo by se stát)
               <>
-                <h3 className="text-2xl font-bold mb-2">Video je pouze pro přihlášené</h3>
+                <h3 className="text-2xl font-bold mb-2">Přístup odepřen</h3>
                 <p className="text-primary-100 mb-6 max-w-md mx-auto">
-                  Pro sledování tohoto videa se musíte přihlásit. Přihlášení je zdarma a zabere jen chvilku.
+                  Nemáte přístup k tomuto obsahu.
                 </p>
               </>
             )}
           </div>
 
           <div className="space-y-3">
-            {isPaid ? (
-              <>
-                <button
-                  onClick={() => onPurchase && onPurchase()}
-                  className="bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg hover:bg-primary-50 transition-colors inline-flex items-center gap-2"
-                >
-                  <FiLock className="w-5 h-5" />
-                  Koupit za {price} Kč
-                </button>
-                
-                <div className="text-sm text-primary-100">
-                  <p>✓ Okamžitý přístup po zakoupení</p>
-                  <p>✓ Kvalitní obsah od experta</p>
-                  <p>✓ Bez dalších poplatků</p>
-                </div>
-              </>
-            ) : (
+            {!user ? (
+              // Nepřihlášený uživatel
               <>
                 <button
                   onClick={() => {
@@ -116,7 +113,24 @@ export default function ProtectedVideoPlayer({
                   <p>✓ Bez reklam a spam emailů</p>
                 </div>
               </>
-            )}
+            ) : isPaid ? (
+              // Přihlášený uživatel bez přístupu k placenému obsahu
+              <>
+                <button
+                  onClick={() => onPurchase && onPurchase()}
+                  className="bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg hover:bg-primary-50 transition-colors inline-flex items-center gap-2"
+                >
+                  <FiLock className="w-5 h-5" />
+                  Koupit za {price} Kč
+                </button>
+                
+                <div className="text-sm text-primary-100">
+                  <p>✓ Okamžitý přístup po zakoupení</p>
+                  <p>✓ Kvalitní obsah od experta</p>
+                  <p>✓ Bez dalších poplatků</p>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
 

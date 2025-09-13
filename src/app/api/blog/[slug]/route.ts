@@ -62,12 +62,19 @@ export async function GET(
     let hasAccess = false;
     try {
       const sessionCookie = cookies().get('session');
+      
       if (sessionCookie) {
         const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
         const userId = sessionData?.id;
+        const userRole = sessionData?.role;
+        
         if (userId) {
+          // Admin má přístup ke všemu
+          if (userRole === 'ADMIN') {
+            hasAccess = true;
+          }
           // Pro placené posty zkontrolovat přístup v UserMiniCourse
-          if (post.isPaid && post.price > 0) {
+          else if (post.isPaid && post.price > 0) {
             const userMiniCourse = await prisma.userMiniCourse.findFirst({
               where: {
                 userId: userId,
@@ -134,6 +141,8 @@ export async function PUT(
         tags: data.tags,
         isPublished: data.isPublished,
         duration: data.duration,
+        price: data.price,
+        isPaid: data.isPaid,
         // Pokud se mění slug, aktualizuj i ten
         ...(data.slug && data.slug !== params.slug ? { slug: data.slug } : {})
       }
