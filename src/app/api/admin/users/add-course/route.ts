@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/db';
 import { updateUserAfterPurchase } from '@/lib/fluentcrm';
-import { verifyAdminAccess, createUnauthorizedResponse, createForbiddenResponse } from '@/lib/admin-auth';
+import { verifyAdminAccess, createUnauthorizedResponse, createForbiddenResponse, createSessionExpiredResponse } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,25 +20,35 @@ export async function POST(request: NextRequest) {
     // Ověření admin oprávnění
     const hasAdminAccess = await verifyAdminAccess(request);
     if (!hasAdminAccess) {
-      return createForbiddenResponse('Nemáte oprávnění k této akci');
+      // Zkontrolujeme, zda je problém s vypršelou session
+      const sessionCookie = request.cookies.get('session');
+      const userIdCookie = request.cookies.get('user_id');
+      
+      if (!sessionCookie && !userIdCookie) {
+        // Žádné cookies = pravděpodobně vypršelá session
+        return createSessionExpiredResponse();
+      } else {
+        // Cookies jsou, ale přístup odepřen = nedostatečná oprávnění
+        return createForbiddenResponse('Nemáte oprávnění k této akci');
+      }
     }
     
     // Získat data z požadavku
     const data = await request.json();
-    const { userEmail, courseId } = data;
+    const { userId, userEmail, courseId } = data;
     
-    if (!userEmail || !courseId) {
+    if ((!userId && !userEmail) || !courseId) {
       return NextResponse.json(
-        { error: 'Chybí email uživatele nebo ID kurzu' },
+        { error: 'Chybí ID nebo email uživatele nebo ID kurzu' },
         { status: 400, headers }
       );
     }
     
-    console.log('Admin přidává kurz:', { userEmail, courseId });
+    console.log('Admin přidává kurz:', { userId, userEmail, courseId });
     
-    // Najít uživatele podle emailu
+    // Najít uživatele podle ID nebo emailu
     const user = await prisma.user.findUnique({
-      where: { email: userEmail },
+      where: userId ? { id: userId } : { email: userEmail },
       select: { id: true, email: true, name: true }
     });
     

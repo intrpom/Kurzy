@@ -67,24 +67,17 @@ export default function AdminUsersClient({ initialData }: AdminUsersClientProps)
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/admin/users/add-course', {
+      await adminApiFetch('/api/admin/users/add-course', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ userId, courseId }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Chyba při přidávání kurzu: ${response.status}`);
-      }
+      }, 'Chyba při přidávání kurzu');
 
       // Refresh stránky pro aktualizaci dat
       router.refresh();
       setSelectedUser(null);
       setSelectedCourse('');
     } catch (err) {
-      console.error('Chyba při přidávání kurzu:', err);
+      showAdminError(err as Error, 'přidávání kurzu');
       setError(err instanceof Error ? err.message : 'Neznámá chyba');
     } finally {
       setIsLoading(false);

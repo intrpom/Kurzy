@@ -126,17 +126,30 @@ export async function GET(request: NextRequest) {
     // Zakódujeme data do Base64 pro lepší kompatibilitu
     const sessionValue = Buffer.from(JSON.stringify(sessionData)).toString('base64');
     
+    // Detekce prostředí pro správné nastavení cookies
+    const isProduction = process.env.NODE_ENV === 'production';
+    const host = request.headers.get('host') || '';
+    const isVercel = host.includes('vercel.app') || host.includes('ales-kalina.cz');
+    
+    console.log('Cookie nastavení:', { isProduction, host, isVercel });
+    console.log('Nastavuji cookies pro uživatele:', authToken.email);
+    console.log('Session data pro cookie:', sessionData);
+    
     // Nastavíme cookie s parametry vhodnými pro produkční prostředí
+    // Pro Vercel vždy používáme secure: true a sameSite: 'lax'
+    const cookieSettings = {
+      httpOnly: true,
+      secure: true, // Vždy secure pro HTTPS
+      sameSite: 'lax' as const, // 'lax' je nejkompatibilnější pro Vercel
+      path: '/',
+      domain: undefined, // Necháme undefined pro automatické nastavení
+      maxAge: 60 * 60 * 24 * 7, // 7 dní
+    };
+    
     cookies().set({
       name: 'session',
       value: sessionValue,
-      httpOnly: true,
-      secure: true, // Vždy použít secure pro Vercel
-      sameSite: 'lax', // Změna z 'none' na 'lax' pro lepší kompatibilitu
-      path: '/',
-      // Nepoužíváme doménu v produkci, nechat ji undefined
-      domain: undefined, // Nepoužíváme doménu vůbec
-      maxAge: 60 * 60 * 24 * 7, // 7 dní
+      ...cookieSettings
     });
     
     // Nastavíme také záložní cookie pro případ, že by httpOnly nefungovalo
@@ -161,6 +174,13 @@ export async function GET(request: NextRequest) {
       path: '/',
       domain: undefined,
       maxAge: 60 * 60 * 24 * 7, // 7 dní
+    });
+
+    console.log('✅ Cookies byly nastaveny pro uživatele:', authToken.email);
+    console.log('Cookie hodnoty:', {
+      session: sessionValue.substring(0, 20) + '...',
+      user_id: authToken.userId,
+      session_check: 'true'
     });
 
     // Připravit data pro odpověď

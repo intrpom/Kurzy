@@ -29,6 +29,14 @@ export async function verifySession(request: NextRequest): Promise<DecodedSessio
       session_check: sessionCheckCookie ? sessionCheckCookie.value : 'chybí'
     });
     
+    // Debug informace o všech cookies
+    const allCookies = request.cookies.getAll();
+    console.log('Všechny cookies v požadavku:', allCookies.map(c => ({ 
+      name: c.name, 
+      hasValue: !!c.value,
+      valueLength: c.value?.length || 0
+    })));
+    
     // Pokud nemáme session cookie, ale máme user_id cookie, zkusíme použít tu
     if ((!sessionCookie || !sessionCookie.value) && userIdCookie && userIdCookie.value) {
       console.log('Používám záložní cookie user_id:', userIdCookie.value);

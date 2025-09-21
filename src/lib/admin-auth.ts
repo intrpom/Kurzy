@@ -14,12 +14,44 @@ export async function verifyAdminAccess(request: NextRequest): Promise<boolean> 
     
     // Debug cookies
     const allCookies = request.cookies.getAll();
-    console.log('[ADMIN AUTH] Všechny cookies:', allCookies.map(c => ({ name: c.name, hasValue: !!c.value })));
+    console.log('[ADMIN AUTH] Všechny cookies:', allCookies.map(c => ({ 
+      name: c.name, 
+      hasValue: !!c.value,
+      valueLength: c.value?.length || 0
+    })));
+    
+    // Specifické cookies pro autentizaci
+    const sessionCookie = request.cookies.get('session');
+    const userIdCookie = request.cookies.get('user_id');
+    const sessionCheckCookie = request.cookies.get('session_check');
+    
+    console.log('[ADMIN AUTH] Auth cookies detail:', {
+      session: sessionCookie ? `přítomna (${sessionCookie.value.length} znaků)` : 'chybí',
+      user_id: userIdCookie ? userIdCookie.value : 'chybí',
+      session_check: sessionCheckCookie ? sessionCheckCookie.value : 'chybí'
+    });
     
     // Ověříme session
     const session = await verifySession(request);
     
     if (!session) {
+      console.log('[ADMIN AUTH] Žádná platná session z cookies');
+      
+      // ZÁLOŽNÍ ŘEŠENÍ: Zkusíme Authorization header
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        console.log('[ADMIN AUTH] Zkouším Authorization header token');
+        
+        try {
+          // Zde by byla logika pro ověření Bearer tokenu
+          // Pro teď jen logujeme, že jsme našli token
+          console.log('[ADMIN AUTH] Nalezen Bearer token:', token.substring(0, 10) + '...');
+        } catch (error) {
+          console.log('[ADMIN AUTH] Bearer token není platný');
+        }
+      }
+      
       console.log('[ADMIN AUTH] Žádná platná session - přístup odepřen');
       return false;
     }
@@ -73,6 +105,25 @@ export function createForbiddenResponse(message: string = 'Nemáte oprávnění 
     }), 
     { 
       status: 403,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+}
+
+/**
+ * Vytvoří Response s chybou 401 pro vypršelou session
+ */
+export function createSessionExpiredResponse() {
+  return new Response(
+    JSON.stringify({ 
+      error: 'Vaše session vypršela. Prosím přihlaste se znovu.',
+      code: 'SESSION_EXPIRED',
+      action: 'REDIRECT_TO_LOGIN'
+    }), 
+    { 
+      status: 401,
       headers: {
         'Content-Type': 'application/json'
       }
