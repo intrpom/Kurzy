@@ -356,7 +356,7 @@ export default async function MyMiniCoursesPage() {
           <div className="container-custom">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {availableMiniCourses.map((miniCourse: AvailableMiniCourse) => (
-                <div key={miniCourse.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div key={miniCourse.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
                   <div className="relative h-48 bg-neutral-100">
                     {miniCourse.thumbnailUrl ? (
                       <img 
@@ -371,37 +371,42 @@ export default async function MyMiniCoursesPage() {
                     )}
                   </div>
                   
-                  <div className="p-6">
-                    <h3 className="text-xl font-serif font-semibold mb-2">{miniCourse.title}</h3>
-                    {miniCourse.subtitle && (
-                      <p className="text-neutral-600 mb-4 line-clamp-2">
-                        {miniCourse.subtitle}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-sm text-neutral-600 mb-4">
-                      {miniCourse.duration && (
-                        <div className="flex items-center">
-                          <FiClock className="mr-1" />
-                          <span>{formatDuration(miniCourse.duration)}</span>
-                        </div>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <div className="flex-grow">
+                      <h3 className="text-xl font-serif font-semibold mb-2">{miniCourse.title}</h3>
+                      {miniCourse.subtitle && (
+                        <p className="text-neutral-600 mb-4 line-clamp-2">
+                          {miniCourse.subtitle}
+                        </p>
                       )}
-                      <div className="flex items-center">
-                        <FiEye className="mr-1" />
-                        <span>{formatViews(miniCourse.views)} shlédnutí</span>
+                      
+                      <div className="flex items-center justify-between text-sm text-neutral-600 mb-4">
+                        {miniCourse.duration && (
+                          <div className="flex items-center">
+                            <FiClock className="mr-1" />
+                            <span>{formatDuration(miniCourse.duration)}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center">
+                          <FiEye className="mr-1" />
+                          <span>{formatViews(miniCourse.views)} shlédnutí</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <span className={`text-lg font-bold ${!miniCourse.isPaid ? 'text-green-600' : 'text-secondary-600'}`}>
+                          {!miniCourse.isPaid ? 'Zdarma' : `${miniCourse.price} Kč`}
+                        </span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <span className={`text-lg font-bold ${!miniCourse.isPaid ? 'text-green-600' : 'text-secondary-600'}`}>
-                        {!miniCourse.isPaid ? 'Zdarma' : `${miniCourse.price} Kč`}
-                      </span>
+                    <div className="mt-auto">
                       <Link 
                         href={`/blog/${miniCourse.slug}`} 
                         prefetch={false} 
-                        className="btn-primary"
+                        className="btn-primary w-full inline-flex items-center justify-center"
                       >
-                        Detail minikurzu
+                        Detail minikurzu <FiArrowRight className="ml-2" />
                       </Link>
                     </div>
                   </div>

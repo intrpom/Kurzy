@@ -21,7 +21,7 @@ function generateExpiryTime(): Date {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name } = await request.json();
+    const { email, name, courseId, slug, price, action, returnUrl } = await request.json();
 
     if (!email || !email.includes('@')) {
       return NextResponse.json(
@@ -133,7 +133,20 @@ export async function POST(request: NextRequest) {
       console.log('Používám automaticky detekovanou URL:', baseUrl);
     }
     
-    const loginUrl = `${baseUrl}/auth/verify?token=${token}&email=${encodeURIComponent(email)}`;
+    // Sestavit URL s parametry
+    const urlParams = new URLSearchParams({
+      token,
+      email
+    });
+    
+    // Přidat volitelné parametry pokud existují
+    if (courseId) urlParams.set('courseId', courseId);
+    if (slug) urlParams.set('slug', slug);
+    if (price) urlParams.set('price', price);
+    if (action) urlParams.set('action', action);
+    if (returnUrl) urlParams.set('returnUrl', returnUrl);
+    
+    const loginUrl = `${baseUrl}/auth/verify?${urlParams.toString()}`;
 
     // Odeslat e-mail s přihlašovacím odkazem
     let emailSent = false;

@@ -219,9 +219,10 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz', isDetai
   
   // Pro placené kurzy přesměrujeme na přihlášení, ne přímo na Stripe
   if (price > 0) {
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname : `/kurzy/${slug}`;
     return (
       <Link 
-        href={`/auth/login?courseId=${courseId}&slug=${slug}&price=${price}&action=purchase`}
+        href={`/auth/login?courseId=${courseId}&slug=${slug}&price=${price}&action=purchase&returnUrl=${encodeURIComponent(currentUrl)}`}
         className="btn-primary inline-flex items-center justify-center w-full"
       >
         <FiCreditCard className="mr-2" />
@@ -232,14 +233,26 @@ export function GuestButton({ courseId, slug, price = 0, title = 'Kurz', isDetai
   
 
   // Pro kurzy zdarma - na seznamu ukážeme "Detail kurzu", na detailu "Získat kurz (je zdarma)"
+  if (isOnDetailPage) {
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname : `/kurzy/${slug}`;
+    return (
+      <Link 
+        href={`/auth/login?courseId=${courseId}&slug=${slug}&returnUrl=${encodeURIComponent(currentUrl)}`}
+        prefetch={false}
+        className="btn-primary inline-flex items-center justify-center w-full"
+      >
+        Získat kurz (je zdarma) <FiArrowRight className="ml-2" />
+      </Link>
+    );
+  }
 
   return (
     <Link 
-      href={isOnDetailPage ? `/auth/login?courseId=${courseId}&slug=${slug}` : `/kurzy/${slug}`}
+      href={`/kurzy/${slug}`}
       prefetch={false}
       className="btn-primary inline-flex items-center justify-center w-full"
     >
-      {isOnDetailPage ? 'Získat kurz (je zdarma)' : 'Detail kurzu'} <FiArrowRight className="ml-2" />
+      Detail kurzu <FiArrowRight className="ml-2" />
     </Link>
   );
 }

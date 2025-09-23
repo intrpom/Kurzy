@@ -18,9 +18,10 @@ interface VerifyAuthProps {
   slug?: string;
   price?: string;
   action?: string;
+  returnUrl?: string;
 }
 
-const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, price, action }) => {
+const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, price, action, returnUrl }) => {
   // PRVNÍ KONTROLA - pokud už byl token zpracován globálně
   if (processedTokens.has(token)) {
     return (
@@ -46,7 +47,7 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
   
   // Okamžité přesměrování pokud už je ověřeno
   if (alreadyVerified && typeof window !== 'undefined') {
-    const redirectUrl = courseId && slug ? `/kurzy/${slug}` : '/';
+    const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : (courseId && slug ? `/kurzy/${slug}` : '/');
     setTimeout(() => {
       router.push(redirectUrl);
     }, 50);
@@ -64,7 +65,7 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
     const tokenKey = `${token}_${email}`;
     const alreadyVerified = sessionStorage.getItem(`verified_${token}`);
     if (alreadyVerified) {
-      const redirectUrl = courseId && slug ? `/kurzy/${slug}` : '/';
+      const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : (courseId && slug ? `/kurzy/${slug}` : '/');
       setTimeout(() => {
         router.push(redirectUrl);
       }, 100);
@@ -219,8 +220,8 @@ const VerifyAuth: React.FC<VerifyAuthProps> = ({ token, email, courseId, slug, p
             }
           }
           
-          // Standardní přesměrování pro nepladené kurzy
-          const redirectUrl = courseId && slug ? `/kurzy/${slug}` : '/';
+          // Standardní přesměrování pro neplacené kurzy
+          const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : (courseId && slug ? `/kurzy/${slug}` : '/');
           
           // Nastavení příznaku pro zabránění smyčce API volání
           sessionStorage.setItem('skipAuthCheck', 'true');

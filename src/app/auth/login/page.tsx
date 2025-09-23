@@ -50,7 +50,7 @@ export default function Login({
             </div>
             
             <Suspense fallback={<div>Načítání...</div>}>
-              <LoginForm courseId={courseId} slug={slug} price={price} action={action} />
+              <LoginForm courseId={courseId} slug={slug} price={price} action={action} returnUrl={returnUrl} />
             </Suspense>
             
             <div className="mt-8 text-center">

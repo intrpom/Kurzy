@@ -9,9 +9,10 @@ interface LoginFormProps {
   slug?: string;
   price?: string;
   action?: string;
+  returnUrl?: string;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action, returnUrl }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -26,6 +27,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
     if (slug) urlObj.searchParams.set('slug', slug);
     if (price) urlObj.searchParams.set('price', price);
     if (action) urlObj.searchParams.set('action', action);
+    if (returnUrl) urlObj.searchParams.set('returnUrl', returnUrl);
     return urlObj.toString();
   };
 
@@ -45,7 +47,29 @@ const LoginForm: React.FC<LoginFormProps> = ({ courseId, slug, price, action }) 
     }
     
     try {
-      const result = await login(email, name.trim());
+      // Volání API přímo s parametry místo přes AuthContext
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email, 
+          name: name.trim(),
+          courseId,
+          slug,
+          price,
+          action,
+          returnUrl
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        setValidationError(result.error || 'Došlo k chybě při přihlašování');
+        return;
+      }
       
       if (result.success) {
         setIsSubmitted(true);
