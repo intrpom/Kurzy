@@ -68,10 +68,21 @@ export default function ProtectedVideoPlayer({
             {!user ? (
               // Uživatel není přihlášený
               <>
-                <h3 className="text-2xl font-bold mb-2">Video je pouze pro přihlášené</h3>
-                <p className="text-primary-100 mb-6 max-w-md mx-auto">
-                  Pro sledování tohoto videa se musíte přihlásit. Přihlášení je zdarma a zabere jen chvilku.
-                </p>
+                {isPaid ? (
+                  <>
+                    <h3 className="text-2xl font-bold mb-2">Placený minikurz</h3>
+                    <p className="text-primary-100 mb-6 max-w-md mx-auto">
+                      Pro sledování tohoto minikurzu je potřeba se přihlásit a zakoupit přístup za {price} Kč.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-2xl font-bold mb-2">Video je pouze pro přihlášené</h3>
+                    <p className="text-primary-100 mb-6 max-w-md mx-auto">
+                      Pro sledování tohoto videa se musíte přihlásit. Přihlášení je zdarma a zabere jen chvilku.
+                    </p>
+                  </>
+                )}
               </>
             ) : isPaid ? (
               // Uživatel je přihlášený, ale nemá přístup k placenému obsahu
@@ -104,13 +115,23 @@ export default function ProtectedVideoPlayer({
                   className="bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg hover:bg-primary-50 transition-colors inline-flex items-center gap-2"
                 >
                   <FiUser className="w-5 h-5" />
-                  Přihlásit se zdarma
+                  {isPaid ? 'Přihlásit se a koupit' : 'Přihlásit se zdarma'}
                 </button>
                 
                 <div className="text-sm text-primary-100">
-                  <p>✓ Registrace za pár sekund</p>
-                  <p>✓ Přístup ke všem bezplatným videím</p>
-                  <p>✓ Bez reklam a spam emailů</p>
+                  {isPaid ? (
+                    <>
+                      <p>✓ Přihlášení zdarma za pár sekund</p>
+                      <p>✓ Bezpečná platba přes Stripe</p>
+                      <p>✓ Okamžitý přístup po zakoupení</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>✓ Registrace za pár sekund</p>
+                      <p>✓ Přístup ke všem bezplatným videím</p>
+                      <p>✓ Bez reklam a spam emailů</p>
+                    </>
+                  )}
                 </div>
               </>
             ) : isPaid ? (

@@ -206,9 +206,9 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 
               {/* Meta informace */}
               <div className="flex items-center gap-4 text-sm text-neutral-500 mb-6">
-                <span>{new Date(post.publishedAt).toLocaleDateString('cs-CZ')}</span>
-                {post.duration && <span>• {formatDuration(post.duration)}</span>}
-                <span>• {formatViews(post.views)} shlédnutí</span>
+                {post.duration && <span>{formatDuration(post.duration)}</span>}
+                {post.duration && <span>•</span>}
+                <span>{formatViews(post.views)} shlédnutí</span>
               </div>
 
               {/* Cenové informace a nákup */}

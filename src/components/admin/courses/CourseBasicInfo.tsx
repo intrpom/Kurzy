@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ImageUploader from '@/components/ImageUploader';
 import { Course } from '@/types/course';
 
@@ -23,6 +23,25 @@ export default function CourseBasicInfo({
   onGenerateSlug,
   isNewCourse
 }: CourseBasicInfoProps) {
+  const [tagsInput, setTagsInput] = useState('');
+
+  // Synchronizace lokálního stavu s tagy z kurzu
+  useEffect(() => {
+    setTagsInput((course.tags || []).join(', '));
+  }, [course.tags]);
+
+  // Zpracování změny tagů - pouze aktualizujeme lokální input
+  const handleTagsInputChange = (value: string) => {
+    setTagsInput(value);
+  };
+
+  // Parsování tagů při blur nebo odeslání
+  const handleTagsBlur = () => {
+    const mockEvent = {
+      target: { value: tagsInput }
+    } as React.ChangeEvent<HTMLInputElement>;
+    onTagsChange(mockEvent);
+  };
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <h2 className="text-xl font-medium mb-4">Základní informace</h2>
@@ -152,8 +171,9 @@ export default function CourseBasicInfo({
             type="text"
             id="tags"
             name="tags"
-            value={(course.tags || []).join(', ')}
-            onChange={onTagsChange}
+            value={tagsInput}
+            onChange={(e) => handleTagsInputChange(e.target.value)}
+            onBlur={handleTagsBlur}
             className="w-full p-2 border border-neutral-300 rounded-md"
             placeholder="javascript, react, web"
           />

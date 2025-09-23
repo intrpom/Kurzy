@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FiMail, FiUser, FiBook, FiCalendar, FiEdit, FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { adminApiFetch, showAdminError } from '@/utils/admin-error-handler';
 
 interface Course {
   id: string;

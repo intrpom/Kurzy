@@ -1,0 +1,50 @@
+[
+  {
+    "id": "cmcs7xfli0000c00wts055dwf",
+    "email": "akalina@seznam.cz",
+    "name": "Ales",
+    "role": "ADMIN",
+    "createdAt": "2025-07-06T22:02:48.245Z",
+    "updatedAt": "2025-09-09T15:38:15.708Z"
+  },
+  {
+    "id": "cmes5mcvy0000cbexfzgzw0ch",
+    "email": "kalina-ales@seznam.cz",
+    "name": "Hhoven",
+    "role": "user",
+    "createdAt": "2025-08-26T06:17:36.959Z",
+    "updatedAt": "2025-09-11T21:10:12.059Z"
+  },
+  {
+    "id": "cmfi74ooz0000boeatccgbglq",
+    "email": "hrubazuzana27@gmail.com",
+    "name": "Zuzka Hrubá",
+    "role": "user",
+    "createdAt": "2025-09-13T11:41:52.260Z",
+    "updatedAt": "2025-09-13T11:41:52.260Z"
+  },
+  {
+    "id": "cmftrc0450000c3gyrdab4il1",
+    "email": "marena0153@seznam.cz",
+    "name": "Mariana Šubová",
+    "role": "user",
+    "createdAt": "2025-09-21T13:52:53.910Z",
+    "updatedAt": "2025-09-21T13:52:53.910Z"
+  },
+  {
+    "id": "cmftzrjyz00006ti8g7urneno",
+    "email": "akfilipek@gmail.com",
+    "name": "Alena Štindlová",
+    "role": "user",
+    "createdAt": "2025-09-21T17:48:56.411Z",
+    "updatedAt": "2025-09-21T17:48:56.411Z"
+  },
+  {
+    "id": "cmfowp68i00009sfnwuhjw3mj",
+    "email": "pavelpres@email.cz",
+    "name": "Pavel",
+    "role": "user",
+    "createdAt": "2025-09-18T04:24:15.571Z",
+    "updatedAt": "2025-09-22T04:20:17.576Z"
+  }
+]
