@@ -259,10 +259,18 @@ export default async function CourseDetail({ params }: { params: { slug: string 
                   </span>
                 </div>
               </div>
-              {/* Starý hardcoded kód odstraněn - používáme CourseDetailButton níže */}
+              
+              {/* CTA Button - nahoru pro lepší viditelnost */}
+              <div className="mt-6">
+                <CourseDetailButton 
+                  courseId={course.id}
+                  slug={course.slug}
+                  price={course.price}
+                />
+              </div>
               
               {/* Course Description - přesunuto výše */}
-              <div className="mt-4">
+              <div className="mt-6">
                 <CourseDescription description={course.description} />
               </div>
             </div>
