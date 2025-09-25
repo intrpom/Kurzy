@@ -70,30 +70,31 @@ model Material {
 }
 
 model BlogPost {
-  id             String   @id @default(cuid())
-  slug           String   @unique
-  title          String
-  subtitle       String?
-  content        String?
-  videoUrl       String?
-  videoLibraryId String?
-  thumbnailUrl   String?
-  tags           String[]
-  isPublished    Boolean  @default(true)
-  views          Int      @default(0)
-  duration       Int?
-  price          Float    @default(0)     // Cena minikurzu v Kč
-  isPaid         Boolean  @default(false) // Zda je minikurz placený
-  publishedAt    DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relace k nákupům
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  title           String
+  subtitle        String?
+  content         String?
+  videoUrl        String?
+  videoLibraryId  String?
+  thumbnailUrl    String?
+  tags            String[]
+  isPublished     Boolean          @default(true)
+  views           Int              @default(0)
+  duration        Int?
+  price           Float            @default(0)
+  isPaid          Boolean          @default(false)
+  publishedAt     DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  buttonText      String?
+  buttonUrl       String?
+  buttonEnabled   Boolean          @default(false)
   userMiniCourses UserMiniCourse[]
 
-  @@index([isPublished]) // Index pro rychlé filtrování publikovaných
-  @@index([isPaid]) // Index pro rychlé filtrování placených
-  @@index([publishedAt]) // Index pro rychlé řazení podle data
+  @@index([isPublished])
+  @@index([isPaid])
+  @@index([publishedAt])
 }
 
 model User {
@@ -106,7 +107,7 @@ model User {
   tokens             AuthToken[]
   userCourses        UserCourse[]
   userLessonProgress UserLessonProgress[]
-  userMiniCourses    UserMiniCourse[]     // Nákupy minikurzů
+  userMiniCourses    UserMiniCourse[]
 }
 
 model AuthToken {
@@ -146,20 +147,24 @@ model UserLessonProgress {
 }
 
 model UserMiniCourse {
-  id           String    @id @default(cuid())
-  userId       String
-  blogPostId   String
-  purchaseDate DateTime  @default(now())
-  price        Float     // Cena za kterou byl minikurz zakoupen
-  stripePaymentId String? // ID platby ze Stripe
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String   @id @default(cuid())
+  userId          String
+  blogPostId      String
+  purchaseDate    DateTime @default(now())
+  price           Float
+  stripePaymentId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  blogPost        BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Relace
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  blogPost     BlogPost  @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  @@unique([userId, blogPostId])
+  @@index([userId])
+  @@index([blogPostId])
+}
 
-  @@unique([userId, blogPostId]) // Jeden uživatel může koupit jeden minikurz jen jednou
-  @@index([userId]) // Index pro rychlé vyhledávání podle uživatele
-  @@index([blogPostId]) // Index pro rychlé vyhledávání podle minikurzu
+model TestTable {
+  id        String   @id
+  name      String
+  createdAt DateTime @default(now())
 }

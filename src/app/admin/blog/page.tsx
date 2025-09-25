@@ -26,9 +26,17 @@ async function getAdminBlogPosts(): Promise<BlogPost[]> {
       isPublished: post.isPublished,
       views: post.views,
       duration: post.duration ?? undefined,
+      price: post.price,
+      isPaid: post.isPaid,
       videoUrl: post.videoUrl ?? undefined,
       videoLibraryId: post.videoLibraryId ?? undefined,
       thumbnailUrl: post.thumbnailUrl ?? undefined,
+      // @ts-ignore - nová pole z databáze
+      buttonText: post.buttonText ?? undefined,
+      // @ts-ignore - nová pole z databáze
+      buttonUrl: post.buttonUrl ?? undefined,
+      // @ts-ignore - nová pole z databáze
+      buttonEnabled: post.buttonEnabled ?? undefined,
       publishedAt: post.publishedAt ? post.publishedAt.toISOString() : new Date().toISOString(),
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString()

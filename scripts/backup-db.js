@@ -21,6 +21,185 @@ if (!process.env.DATABASE_URL && !process.env.PRISMA_DATABASE_URL) {
 const prisma = new PrismaClient();
 
 /**
+ * Pokročilá kontrola integrity zálohy - ověří velikosti souborů, konzistenci dat a porovná s předchozími zálohami
+ */
+async function performBackupIntegrityCheck(backupDir, originalData) {
+  try {
+    console.log('   🔍 Kontroluji velikosti souborů...');
+    
+    const backupFiles = [
+      { name: 'courses.json', data: originalData.courses, minSize: 1000 },
+      { name: 'users.json', data: originalData.users, minSize: 200 },
+      { name: 'user-courses.json', data: originalData.userCourses, minSize: 50 },
+      { name: 'blog-posts.json', data: originalData.blogPosts, minSize: 1000 },
+      { name: 'auth-tokens.json', data: originalData.authTokens, minSize: 10 },
+      { name: 'user-lesson-progress.json', data: originalData.userLessonProgress, minSize: 50 },
+      { name: 'user-mini-courses.json', data: originalData.userMiniCourses, minSize: 10 },
+      { name: 'testtable.json', data: originalData.testtableData, minSize: 2 }, // minimálně []
+      { name: 'metadata.json', data: null, minSize: 100 }
+    ];
+    
+    let totalBackupSize = 0;
+    let filesChecked = 0;
+    let warnings = [];
+    
+    for (const file of backupFiles) {
+      const filePath = path.join(backupDir, file.name);
+      
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        const fileSizeKB = Math.round(stats.size / 1024 * 100) / 100;
+        totalBackupSize += stats.size;
+        filesChecked++;
+        
+        // Kontrola minimální velikosti
+        if (stats.size < file.minSize) {
+          warnings.push(`⚠️  ${file.name}: Podezřele malý soubor (${fileSizeKB} KB)`);
+        }
+        
+        // Kontrola konzistence dat vs soubor
+        if (file.data && Array.isArray(file.data)) {
+          const fileContent = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          if (fileContent.length !== file.data.length) {
+            warnings.push(`❌ ${file.name}: Nesouhlasí počet záznamů (soubor: ${fileContent.length}, data: ${file.data.length})`);
+          } else {
+            console.log(`   ✅ ${file.name}: ${fileContent.length} záznamů, ${fileSizeKB} KB`);
+          }
+        } else {
+          console.log(`   ✅ ${file.name}: ${fileSizeKB} KB`);
+        }
+      } else {
+        warnings.push(`❌ Chybí soubor: ${file.name}`);
+      }
+    }
+    
+    console.log(`\n   📊 Celková velikost zálohy: ${Math.round(totalBackupSize / 1024)} KB`);
+    console.log(`   📁 Zkontrolováno souborů: ${filesChecked}/${backupFiles.length}`);
+    
+    // Kontrola JSON validity
+    console.log('\n   🔍 Kontroluji validitu JSON souborů...');
+    let validJsonFiles = 0;
+    for (const file of backupFiles) {
+      const filePath = path.join(backupDir, file.name);
+      if (fs.existsSync(filePath)) {
+        try {
+          JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          validJsonFiles++;
+        } catch (error) {
+          warnings.push(`❌ ${file.name}: Neplatný JSON - ${error.message}`);
+        }
+      }
+    }
+    console.log(`   ✅ Validních JSON souborů: ${validJsonFiles}/${filesChecked}`);
+    
+    // Porovnání s předchozí zálohou
+    console.log('\n   🔍 Porovnávám s předchozí zálohou...');
+    await compareWithPreviousBackup(backupDir, originalData);
+    
+    // Výsledek kontroly
+    if (warnings.length === 0) {
+      console.log('\n   ✅ Integrita zálohy: PERFEKTNÍ');
+      console.log('   🛡️  Všechny kontroly prošly úspěšně');
+    } else {
+      console.log('\n   ⚠️  Nalezena upozornění:');
+      warnings.forEach(warning => console.log(`      ${warning}`));
+      
+      if (warnings.some(w => w.includes('❌'))) {
+        console.log('\n   🚨 KRITICKÉ CHYBY - zkontroluj zálohu!');
+      } else {
+        console.log('\n   💡 Pouze upozornění - záloha je pravděpodobně v pořádku');
+      }
+    }
+    
+  } catch (error) {
+    console.error('   ❌ Chyba při kontrole integrity:', error.message);
+    console.log('   ⚠️  Pokračujem bez kontroly integrity...');
+  }
+}
+
+/**
+ * Porovnání s předchozí zálohou pro detekci neočekávaných změn
+ */
+async function compareWithPreviousBackup(currentBackupDir, currentData) {
+  try {
+    const backupDir = path.dirname(currentBackupDir);
+    const backups = fs.readdirSync(backupDir)
+      .filter(dir => dir.startsWith('backup-') && dir !== path.basename(currentBackupDir))
+      .sort()
+      .reverse(); // nejnovější první
+    
+    if (backups.length === 0) {
+      console.log('   ℹ️  Žádná předchozí záloha k porovnání');
+      return;
+    }
+    
+    const previousBackupDir = path.join(backupDir, backups[0]);
+    const previousMetadataPath = path.join(previousBackupDir, 'metadata.json');
+    
+    if (!fs.existsSync(previousMetadataPath)) {
+      console.log('   ⚠️  Předchozí záloha nemá metadata');
+      return;
+    }
+    
+    const previousMetadata = JSON.parse(fs.readFileSync(previousMetadataPath, 'utf8'));
+    const currentStats = {
+      courses: currentData.courses.length,
+      users: currentData.users.length,
+      blogPosts: currentData.blogPosts.length,
+      userCourses: currentData.userCourses.length,
+      userMiniCourses: currentData.userMiniCourses.length,
+      userLessonProgress: currentData.userLessonProgress.length,
+      authTokens: currentData.authTokens.length,
+      testtable: currentData.testtableData.length
+    };
+    
+    console.log(`   📅 Porovnávám s: ${backups[0]}`);
+    
+    let significantChanges = [];
+    let normalChanges = [];
+    
+    for (const [key, currentValue] of Object.entries(currentStats)) {
+      const previousValue = previousMetadata.stats[key] || 0;
+      const diff = currentValue - previousValue;
+      
+      if (diff !== 0) {
+        const changeText = `${key}: ${previousValue} → ${currentValue} (${diff > 0 ? '+' : ''}${diff})`;
+        
+        // Detekce významných změn
+        if (key === 'courses' && Math.abs(diff) > 0) {
+          significantChanges.push(`📚 ${changeText}`);
+        } else if (key === 'users' && diff > 5) {
+          significantChanges.push(`👥 ${changeText}`);
+        } else if (key === 'blogPosts' && Math.abs(diff) > 0) {
+          significantChanges.push(`📝 ${changeText}`);
+        } else if (key === 'userMiniCourses' && Math.abs(diff) > 0) {
+          significantChanges.push(`🛒 ${changeText}`);
+        } else {
+          normalChanges.push(`   ${changeText}`);
+        }
+      }
+    }
+    
+    if (significantChanges.length > 0) {
+      console.log('   📈 Významné změny:');
+      significantChanges.forEach(change => console.log(`      ${change}`));
+    }
+    
+    if (normalChanges.length > 0) {
+      console.log('   📊 Běžné změny:');
+      normalChanges.forEach(change => console.log(`      ${change}`));
+    }
+    
+    if (significantChanges.length === 0 && normalChanges.length === 0) {
+      console.log('   ✅ Žádné změny od poslední zálohy');
+    }
+    
+  } catch (error) {
+    console.log('   ⚠️  Nelze porovnat s předchozí zálohou:', error.message);
+  }
+}
+
+/**
  * Kontrola kompletnosti zálohování - ověří, že se zálohují všechny tabulky
  */
 async function checkBackupCompleteness() {
@@ -36,7 +215,8 @@ async function checkBackupCompleteness() {
       'UserCourse',
       'UserLessonProgress',
       'UserMiniCourse',
-      'AuthToken'
+      'AuthToken',
+      'Testtable'  // všechny tabulky pro jistotu
     ];
     
     // Získání všech tabulek z databáze pomocí raw SQL
@@ -218,6 +398,23 @@ async function backupDatabase() {
       JSON.stringify(userMiniCourses, null, 2)
     );
     
+    // Záloha Testtable (pro kompletnost)
+    let testtableData = [];
+    try {
+      testtableData = await prisma.$queryRaw`SELECT * FROM "Testtable"`;
+      fs.writeFileSync(
+        path.join(currentBackupDir, 'testtable.json'),
+        JSON.stringify(testtableData, null, 2)
+      );
+    } catch (error) {
+      // Pokud tabulka neexistuje nebo je prázdná, není to problém
+      console.log('   ℹ️  Testtable je prázdná nebo neexistuje');
+      fs.writeFileSync(
+        path.join(currentBackupDir, 'testtable.json'),
+        JSON.stringify([], null, 2)
+      );
+    }
+    
     // Vytvoření souboru s metadaty zálohy
     const metadata = {
       timestamp: new Date().toISOString(),
@@ -231,7 +428,8 @@ async function backupDatabase() {
         blogPosts: blogPosts.length,
         authTokens: authTokens.length,
         userLessonProgress: userLessonProgress.length,
-        userMiniCourses: userMiniCourses.length
+        userMiniCourses: userMiniCourses.length,
+        testtable: testtableData.length
       }
     };
     
@@ -427,6 +625,20 @@ async function backupDatabase() {
     console.log(`   🛒 Celková hodnota nákupů: ${totalPurchaseValue} Kč`);
     
     console.log('─'.repeat(80));
+    
+    // 2. KROK: Pokročilá kontrola integrity zálohy
+    console.log('\n🔍 2. Kontroluji integritu zálohy...');
+    await performBackupIntegrityCheck(currentBackupDir, {
+      courses,
+      users,
+      userCourses,
+      blogPosts,
+      authTokens,
+      userLessonProgress,
+      userMiniCourses,
+      testtableData
+    });
+    
     console.log('✅ Záloha dokončena!');
     console.log('\n📋 Pro nahrání na GitHub použij:');
     console.log('   git add .');

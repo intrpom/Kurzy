@@ -309,6 +309,25 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                   ))}
                 </div>
               )}
+
+              {/* Konfigurovatelné tlačítko */}
+              {post.buttonEnabled && post.buttonText && post.buttonUrl && (
+                <div className="mt-8 pt-6 border-t border-neutral-200">
+                  <div className="text-center">
+                    <a
+                      href={post.buttonUrl}
+                      target={post.buttonUrl.startsWith('http') ? '_blank' : '_self'}
+                      rel={post.buttonUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-lg hover:from-primary-800 hover:to-primary-900 hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                      {post.buttonText}
+                      <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

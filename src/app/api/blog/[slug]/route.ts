@@ -52,6 +52,10 @@ export async function GET(
         duration: true,
         price: true,
         isPaid: true,
+        // @ts-ignore - nová pole z databáze
+        buttonText: true,
+        buttonUrl: true,
+        buttonEnabled: true,
         publishedAt: true,
         createdAt: true,
         updatedAt: true,
@@ -143,6 +147,10 @@ export async function PUT(
         duration: data.duration,
         price: data.price,
         isPaid: data.isPaid,
+        // @ts-ignore - nová pole z databáze
+        buttonText: data.buttonText,
+        buttonUrl: data.buttonUrl,
+        buttonEnabled: data.buttonEnabled,
         // Pokud se mění slug, aktualizuj i ten
         ...(data.slug && data.slug !== params.slug ? { slug: data.slug } : {})
       }
@@ -158,16 +166,57 @@ export async function PUT(
   }
 }
 
+// PATCH /api/blog/[slug] - Částečná aktualizace blog postu (např. jen isPublished)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const data = await request.json();
+    
+    // Najdeme post podle slug nebo ID
+    let whereClause;
+    if (params.slug.length > 20) {
+      // Pravděpodobně ID (cuid je delší než 20 znaků)
+      whereClause = { id: params.slug };
+    } else {
+      // Pravděpodobně slug
+      whereClause = { slug: params.slug };
+    }
+    
+    const post = await prisma.blogPost.update({
+      where: whereClause,
+      data: data // Aktualizuje pouze pole která jsou v data objektu
+    });
+
+    return NextResponse.json(post);
+  } catch (error) {
+    console.error('Chyba při částečné aktualizaci blog postu:', error);
+    return NextResponse.json(
+      { error: 'Nepodařilo se aktualizovat blog post' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/blog/[slug] - Smazat blog post
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
+    // Najdeme post podle slug nebo ID
+    let whereClause;
+    if (params.slug.length > 20) {
+      // Pravděpodobně ID (cuid je delší než 20 znaků)
+      whereClause = { id: params.slug };
+    } else {
+      // Pravděpodobně slug
+      whereClause = { slug: params.slug };
+    }
+    
     await prisma.blogPost.delete({
-      where: {
-        slug: params.slug
-      }
+      where: whereClause
     });
 
     return NextResponse.json({ success: true });

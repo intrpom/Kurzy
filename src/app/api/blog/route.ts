@@ -131,7 +131,10 @@ export async function POST(request: NextRequest) {
         isPublished: data.isPublished !== false, // default true
         duration: data.duration,
         price: data.price || 0,
-        isPaid: data.isPaid || false
+        isPaid: data.isPaid || false,
+        buttonText: data.buttonText,
+        buttonUrl: data.buttonUrl,
+        buttonEnabled: data.buttonEnabled || false
       }
     });
     

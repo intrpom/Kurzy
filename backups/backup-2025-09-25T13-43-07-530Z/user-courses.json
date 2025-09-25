@@ -1,0 +1,146 @@
+[
+  {
+    "id": "cmes5qgsq0002cbexc65g9ovs",
+    "userId": "cmes5mcvy0000cbexfzgzw0ch",
+    "courseId": "cmcoz27c80000n1pv09wcuao7",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-26T06:20:48.651Z",
+    "updatedAt": "2025-08-26T06:20:48.651Z"
+  },
+  {
+    "id": "cmes63zth0004cbex0lsxjpdg",
+    "userId": "cmes5mcvy0000cbexfzgzw0ch",
+    "courseId": "cmeevq2bj0003qi15znu3aenm",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-26T06:31:19.830Z",
+    "updatedAt": "2025-08-26T06:31:19.830Z"
+  },
+  {
+    "id": "cmesbrbio00019be8ieko24qi",
+    "userId": "cmes5mcvy0000cbexfzgzw0ch",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-26T09:09:26.161Z",
+    "updatedAt": "2025-08-26T09:09:33.331Z"
+  },
+  {
+    "id": "cmcsfgjdu0001fs0v41wiyjr5",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-07-07T01:33:36.931Z",
+    "updatedAt": "2025-07-07T01:33:36.931Z"
+  },
+  {
+    "id": "cmeesi51j0001n1thkud4rzg0",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27iy000en1pvx3rtwhqe",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-16T21:49:24.872Z",
+    "updatedAt": "2025-08-16T21:49:24.872Z"
+  },
+  {
+    "id": "cmeeukypd0001qib3k05jtx3s",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmcoz27c80000n1pv09wcuao7",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-16T22:47:35.858Z",
+    "updatedAt": "2025-08-16T22:47:35.858Z"
+  },
+  {
+    "id": "cmeewcaa30005qi15e2tx8lz0",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmeevq2bj0003qi15znu3aenm",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-16T23:36:50.188Z",
+    "updatedAt": "2025-08-16T23:36:50.188Z"
+  },
+  {
+    "id": "cmese707c000199e8myyekyu4",
+    "userId": "cmes5mcvy0000cbexfzgzw0ch",
+    "courseId": "cmcoz27iy000en1pvx3rtwhqe",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-26T10:17:37.224Z",
+    "updatedAt": "2025-08-26T10:17:37.224Z"
+  },
+  {
+    "id": "cmeygjeyf0001qjf39ya41q5l",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmeyfa4090000byfmyd0ggnp9",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-08-30T16:09:52.502Z",
+    "updatedAt": "2025-08-30T16:09:52.502Z"
+  },
+  {
+    "id": "cmftrct0m0002c3gydwx63vi7",
+    "userId": "cmftrc0450000c3gyrdab4il1",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 44,
+    "completed": false,
+    "createdAt": "2025-09-21T13:53:31.366Z",
+    "updatedAt": "2025-09-21T14:29:35.060Z"
+  },
+  {
+    "id": "cmftzw95p00026ti82prry848",
+    "userId": "cmftzrjyz00006ti8g7urneno",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 78,
+    "completed": false,
+    "createdAt": "2025-09-21T17:52:35.678Z",
+    "updatedAt": "2025-09-21T19:10:26.605Z"
+  },
+  {
+    "id": "cmftghiwp000164ia7rucbp7z",
+    "userId": "cmfowp68i00009sfnwuhjw3mj",
+    "courseId": "cmeyfa4090000byfmyd0ggnp9",
+    "progress": 2,
+    "completed": false,
+    "createdAt": "2025-09-21T08:49:15.769Z",
+    "updatedAt": "2025-09-22T04:21:18.453Z"
+  },
+  {
+    "id": "cmfvaiox100026kfolyo1l3lf",
+    "userId": "cmcs7xfli0000c00wts055dwf",
+    "courseId": "cmfv8o99b00006kfoj6vy9ism",
+    "progress": 8,
+    "completed": false,
+    "createdAt": "2025-09-22T15:37:44.869Z",
+    "updatedAt": "2025-09-22T15:39:11.296Z"
+  },
+  {
+    "id": "cmfvaxpme00066kfo3a8ufku3",
+    "userId": "cmfowp68i00009sfnwuhjw3mj",
+    "courseId": "cmfv8o99b00006kfoj6vy9ism",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-09-22T15:49:25.622Z",
+    "updatedAt": "2025-09-22T15:49:25.622Z"
+  },
+  {
+    "id": "cmfwaukuc00046oe9j8999wwl",
+    "userId": "cmfwatdby00026oe9asjzoajz",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-09-23T08:34:45.637Z",
+    "updatedAt": "2025-09-23T08:34:45.637Z"
+  },
+  {
+    "id": "cmfxo2tz60002aki8ng05be65",
+    "userId": "cmfxo0b0p0000aki80pz9wq22",
+    "courseId": "cmcoz27l5000ln1pvs4jqo0q3",
+    "progress": 0,
+    "completed": false,
+    "createdAt": "2025-09-24T07:32:51.907Z",
+    "updatedAt": "2025-09-24T07:32:51.907Z"
+  }
+]

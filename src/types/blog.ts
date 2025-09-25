@@ -14,6 +14,12 @@ export interface BlogPost {
   price: number;      // Cena minikurzu v Kč
   isPaid: boolean;    // Zda je minikurz placený
   hasAccess?: boolean; // Zda má uživatel přístup k minikurzu
+  
+  // Konfigurovatelné tlačítko
+  buttonText?: string;    // Text tlačítka
+  buttonUrl?: string;     // URL kam tlačítko vede
+  buttonEnabled?: boolean; // Zda je tlačítko aktivní
+  
   publishedAt: string;
   createdAt: string;
   updatedAt: string;

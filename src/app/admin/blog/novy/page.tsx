@@ -20,6 +20,9 @@ interface FormData {
   duration: number | null;
   price: number | null;
   isPaid: boolean;
+  buttonText: string;
+  buttonUrl: string;
+  buttonEnabled: boolean;
   isPublished: boolean;
 }
 
@@ -38,6 +41,9 @@ export default function NewBlogPostPage() {
     duration: null,
     price: null,
     isPaid: false,
+    buttonText: '',
+    buttonUrl: '',
+    buttonEnabled: false,
     isPublished: true,
   });
   const [tagsInput, setTagsInput] = useState('');
@@ -382,6 +388,69 @@ export default function NewBlogPostPage() {
               className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Podrobný popis videa, o čem se bavíš, co se diváci naučí..."
             />
+          </div>
+
+          {/* Konfigurovatelné tlačítko */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-neutral-900 mb-4">Vlastní tlačítko</h2>
+            <p className="text-sm text-neutral-600 mb-4">
+              Přidej vlastní tlačítko pod video, které návštěvníky přesměruje na libovolnou stránku.
+            </p>
+            
+            <div className="space-y-4">
+              {/* Aktivace tlačítka */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="buttonEnabled"
+                  checked={formData.buttonEnabled}
+                  onChange={(e) => setFormData(prev => ({ ...prev, buttonEnabled: e.target.checked }))}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
+                />
+                <label htmlFor="buttonEnabled" className="ml-2 text-sm font-medium text-neutral-700">
+                  Zobrazit vlastní tlačítko
+                </label>
+              </div>
+
+              {/* Text tlačítka */}
+              {formData.buttonEnabled && (
+                <>
+                  <div>
+                    <label htmlFor="buttonText" className="block text-sm font-medium text-neutral-700 mb-2">
+                      Text tlačítka *
+                    </label>
+                    <input
+                      type="text"
+                      id="buttonText"
+                      value={formData.buttonText}
+                      onChange={(e) => setFormData(prev => ({ ...prev, buttonText: e.target.value }))}
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Např. Koupit plný kurz, Více informací, Registrovat se"
+                      required={formData.buttonEnabled}
+                    />
+                  </div>
+
+                  {/* URL tlačítka */}
+                  <div>
+                    <label htmlFor="buttonUrl" className="block text-sm font-medium text-neutral-700 mb-2">
+                      URL odkaz *
+                    </label>
+                    <input
+                      type="url"
+                      id="buttonUrl"
+                      value={formData.buttonUrl}
+                      onChange={(e) => setFormData(prev => ({ ...prev, buttonUrl: e.target.value }))}
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="https://example.com nebo /kurzy/nazev-kurzu"
+                      required={formData.buttonEnabled}
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Můžeš použít absolutní URL (https://...) nebo relativní (/kurzy/...)
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Nastavení */}
